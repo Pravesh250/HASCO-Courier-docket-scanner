@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Courier Dispatch Scanner</title>
+    <!-- Web App / PWA Meta -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    
+    <!-- Dependencies: Tailwind CSS, FontAwesome, HTML5 QR Code Scanner -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Touch optimization & smooth UI */
+        button, input, select {
+            touch-action: manipulation;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 font-sans flex flex-col select-none overflow-x-hidden">
+
+    <!-- Top Fixed Header -->
+    <header class="bg-slate-900/90 border-b border-slate-800 px-4 py-3 sticky top-0 z-30 backdrop-blur-md flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-sky-600 to-blue-500 flex items-center justify-center shadow-lg shadow-sky-600/30">
+                <i class="fa-solid fa-barcode text-white text-base"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-sm text-white leading-tight">Dispatch Manager</h1>
+                <div class="flex items-center space-x-1.5 text-3xs text-emerald-400 font-mono">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="headerFileName">Loading Today's File...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <button onclick="shareTodayFileWhatsApp()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 shadow-md shadow-emerald-600/20 active:scale-95 transition-all">
+                <i class="fa-brands fa-whatsapp text-sm"></i>
+                <span>Share</span>
+            </button>
+            <button onclick="downloadTodayCSV()" class="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-lg text-xs" title="Download CSV">
+                <i class="fa-solid fa-download"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-md w-full mx-auto p-4 space-y-4 overflow-y-auto pb-24">
+        
+        <!-- Active File Banner -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between shadow-lg">
+            <div class="flex items-center space-x-3 overflow-hidden">
+                <div class="p-2 bg-sky-500/10 border border-sky-500/20 text-sky-400 rounded-xl">
+                    <i class="fa-solid fa-file-csv text-lg"></i>
+                </div>
+                <div class="truncate">
+                    <p class="text-3xs text-slate-400 font-semibold uppercase tracking-wider">Active Batch File</p>
+                    <p id="activeFileNameDisplay" class="text-xs font-mono font-bold text-white truncate">Courier details for- 22_09_2026.csv</p>
+                </div>
+            </div>
+            <div class="text-right flex-shrink-0 pl-2">
+                <span id="todayCountBadge" class="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">0 Records</span>
+            </div>
+        </div>
+
+        <!-- Form Section -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4">
+            
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h2 id="formTitle" class="text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center space-x-1.5">
+                    <i class="fa-solid fa-plus-circle"></i>
+                    <span>New Dispatch Entry</span>
+                </h2>
+                <button id="cancelEditBtn" onclick="resetForm()" class="hidden text-xs text-rose-400 font-medium flex items-center space-x-1">
+                    <i class="fa-solid fa-xmark"></i>
+                    <span>Cancel Edit</span>
+                </button>
+            </div>
+
+            <!-- FIELD 1: Invoice Number -->
+            <div>
+                <label class="block text-2xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                    1. Invoice Number <span class="text-rose-400">*</span>
+                </label>
+                <div class="flex space-x-2">
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-file-invoice absolute left-3 top-3 text-slate-500 text-sm"></i>
+                        <input 
+                            type="text" 
+                            id="invoiceNo" 
+                            placeholder="Enter or scan Invoice #" 
+                            class="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        >
+                    </div>
+                    <button 
+                        type="button" 
+                        onclick="startCameraScanner('invoiceNo')" 
+                        class="px-3.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-medium text-xs flex items-center space-x-1.5 shadow-lg shadow-sky-600/30 active:scale-95 transition-all"
+                    >
+                        <i class="fa-solid fa-camera text-sm"></i>
+                        <span>Scan</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- FIELD 2: Courier Docket Number -->
+            <div>
+                <label class="block text-2xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                    2. Courier Docket Number <span class="text-rose-400">*</span>
+                </label>
+                <div class="flex space-x-2">
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-barcode absolute left-3 top-3 text-slate-500 text-sm"></i>
+                        <input 
+                            type="text" 
+                            id="docketNo" 
+                            placeholder="Enter or scan sticker" 
+                            class="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        >
+                    </div>
+                    <button 
+                        type="button" 
+                        onclick="startCameraScanner('docketNo')" 
+                        class="px-3.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-medium text-xs flex items-center space-x-1.5 shadow-lg shadow-sky-600/30 active:scale-95 transition-all"
+                    >
+                        <i class="fa-solid fa-camera text-sm"></i>
+                        <span>Scan</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- FIELD 3: Courier Partner Selection -->
+            <div>
+                <div class="flex justify-between items-center mb-1.5">
+                    <label class="block text-2xs font-bold text-slate-300 uppercase tracking-wider">
+                        3. Courier Partner <span class="text-rose-400">*</span>
+                    </label>
+                    <button onclick="openModal('manageCouriersModal')" class="text-3xs text-sky-400 font-semibold flex items-center space-x-1 hover:underline">
+                        <i class="fa-solid fa-gear"></i>
+                        <span>Manage Vendors</span>
+                    </button>
+                </div>
+                <div id="courierRadioContainer" class="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1 no-scrollbar">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- FIELD 4: No. of Packages -->
+            <div>
+                <label class="block text-2xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                    4. No. of Packages <span class="text-rose-400">*</span>
+                </label>
+                <div class="relative">
+                    <i class="fa-solid fa-boxes-packing absolute left-3 top-3 text-slate-500 text-sm"></i>
+                    <input 
+                        type="number" 
+                        id="packageCount" 
+                        min="1" 
+                        step="1" 
+                        value="1" 
+                        oninput="onPackageCountChange()"
+                        class="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    >
+                </div>
+            </div>
+
+            <!-- FIELD 5: Dynamic Weight Entries -->
+            <div>
+                <label class="block text-2xs font-bold text-slate-300 uppercase tracking-wider mb-1">
+                    5. Gross Weight Entry (Kg) <span class="text-rose-400">*</span>
+                </label>
+                <div id="dynamicWeightsContainer" class="space-y-2">
+                    <!-- Dynamic weight fields generated based on package count -->
+                </div>
+            </div>
+
+            <!-- SUBMIT / UPDATE BUTTON -->
+            <button 
+                type="button" 
+                id="submitBtn"
+                onclick="handleFormSubmit()" 
+                class="w-full py-3.5 bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-sky-600/30 active:scale-98 transition-all flex items-center justify-center space-x-2 text-sm"
+            >
+                <i class="fa-solid fa-check text-base"></i>
+                <span id="submitBtnText">ADD DISPATCH ENTRY</span>
+            </button>
+
+        </div>
+
+        <!-- Today's Records List -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xs font-bold text-white uppercase tracking-wider flex items-center space-x-2">
+                    <i class="fa-solid fa-list-check text-sky-400"></i>
+                    <span>Today's Entries Log</span>
+                </h2>
+                <span class="text-3xs text-slate-400 font-mono">Format: Semicolon CSV</span>
+            </div>
+
+            <!-- Records Table -->
+            <div class="overflow-x-auto rounded-xl border border-slate-800">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-950 text-slate-400 text-3xs font-semibold uppercase border-b border-slate-800">
+                            <th class="p-2">Inv #</th>
+                            <th class="p-2">Courier</th>
+                            <th class="p-2">Docket</th>
+                            <th class="p-2 text-center">Pkgs</th>
+                            <th class="p-2 text-right">Weights (Kg)</th>
+                            <th class="p-2 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsTableBody" class="divide-y divide-slate-800/60 text-2xs font-mono">
+                        <!-- Dynamic rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL 1: Camera Barcode Scanner -->
+    <div id="cameraModal" class="fixed inset-0 bg-slate-950/95 z-50 hidden flex flex-col justify-between p-4">
+        <div class="flex justify-between items-center mb-2">
+            <div>
+                <h3 class="text-sm font-bold text-white">Align Barcode in Camera Frame</h3>
+                <p class="text-3xs text-slate-400" id="cameraTargetText">Scanning...</p>
+            </div>
+            <button onclick="stopCameraScanner()" class="p-2 rounded-full bg-slate-800 text-slate-300 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Camera Frame Viewport -->
+        <div class="flex-1 flex items-center justify-center relative overflow-hidden rounded-2xl border-2 border-sky-500/50 bg-black">
+            <div id="reader" class="w-full h-full"></div>
+        </div>
+
+        <div class="mt-4 flex justify-center">
+            <button onclick="stopCameraScanner()" class="w-full py-3 bg-slate-800 text-slate-200 rounded-xl text-xs font-semibold">
+                Close Camera
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Manage Courier Partners (Add / Edit / Delete) -->
+    <div id="manageCouriersModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 w-full max-w-sm rounded-2xl border border-slate-800 shadow-2xl p-5 space-y-4 max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-truck-fast text-sky-400"></i>
+                    <span>Manage Courier Partners</span>
+                </h3>
+                <button onclick="closeModal('manageCouriersModal')" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Add New Courier Form -->
+            <div class="space-y-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <p class="text-3xs font-bold uppercase text-slate-400">Add New Partner</p>
+                <div class="flex space-x-2">
+                    <input type="text" id="newCourierInput" placeholder="Courier Name (e.g., DTDC)" class="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white">
+                    <button onclick="addNewCourier()" class="px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold">
+                        Add
+                    </button>
+                </div>
+            </div>
+
+            <!-- List of Existing Couriers with Edit / Delete -->
+            <div class="flex-1 overflow-y-auto space-y-2 pr-1 no-scrollbar">
+                <p class="text-3xs font-bold uppercase text-slate-400">Existing Partners</p>
+                <div id="couriersManagementList" class="space-y-2">
+                    <!-- Dynamic courier management rows -->
+                </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-800 flex justify-end">
+                <button onclick="closeModal('manageCouriersModal')" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State management variables
+        let defaultCouriers = ["Shree Maruti", "DTDC", "BlueDart", "Professional Courier", "FedEx"];
+        let couriers = [];
+        let html5QrcodeScanner = null;
+        let activeScanTargetField = null;
+        let editingIndex = -1; // -1 means adding new entry, >= 0 means editing existing
+
+        // Initialize App on Page Load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadCouriers();
+            renderCourierRadios();
+            initializeTodayFile();
+            onPackageCountChange();
+            renderTodayScansTable();
+            registerServiceWorker();
+        });
+
+        // 1. Date & File Naming Logic: "Courier details for- dd_mm_yyyy.csv"
+        function getFormattedTodayDateString() {
+            const today = new Date();
+            const dd = String(today.getDate()).padStart(2, '0');
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const yyyy = today.getFullYear();
+            return `${dd}_${mm}_${yyyy}`;
+        }
+
+        function getTodayFileName() {
+            const dateStr = getFormattedTodayDateString();
+            return `Courier details for- ${dateStr}.csv`;
+        }
+
+        function initializeTodayFile() {
+            const fileName = getTodayFileName();
+            document.getElementById('headerFileName').innerText = fileName;
+            document.getElementById('activeFileNameDisplay').innerText = fileName;
+
+            // Ensure daily database array exists in localStorage
+            if (!localStorage.getItem(fileName)) {
+                localStorage.setItem(fileName, JSON.stringify([]));
+            }
+        }
+
+        function getTodayRecords() {
+            const fileName = getTodayFileName();
+            try {
+                return JSON.parse(localStorage.getItem(fileName)) || [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveTodayRecords(records) {
+            const fileName = getTodayFileName();
+            localStorage.setItem(fileName, JSON.stringify(records));
+            renderTodayScansTable();
+        }
+
+        // 2. Dynamic Weight Inputs Logic
+        function onPackageCountChange() {
+            const countInput = document.getElementById('packageCount');
+            let count = parseInt(countInput.value) || 1;
+            if (count < 1) {
+                count = 1;
+                countInput.value = 1;
+            }
+
+            const container = document.getElementById('dynamicWeightsContainer');
+            let existingValues = [];
+            
+            // Preserve entered values if available
+            container.querySelectorAll('input').forEach(input => {
+                existingValues.push(input.value);
+            });
+
+            container.innerHTML = '';
+
+            for (let i = 1; i <= count; i++) {
+                const labelText = count === 1 ? "Gross Weight (Kg)" : `Package ${i} Weight (Kg)`;
+                const preservedVal = existingValues[i - 1] || '';
+
+                const div = document.createElement('div');
+                div.className = 'relative';
+                div.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <div class="relative flex-1">
+                            <i class="fa-solid fa-weight-hanging absolute left-3 top-3 text-amber-400 text-sm"></i>
+                            <input 
+                                type="number" 
+                                step="0.01" 
+                                min="0.01"
+                                placeholder="${labelText}" 
+                                value="${preservedVal}"
+                                class="pkg-weight-input w-full pl-9 pr-12 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            >
+                            <span class="absolute right-3 top-2.5 text-xs font-semibold text-slate-400">KG</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            }
+        }
+
+        // 3. Form Validation & Add/Update Handler
+        function handleFormSubmit() {
+            const invoiceNo = document.getElementById('invoiceNo').value.trim();
+            const docketNo = document.getElementById('docketNo').value.trim();
+            const packageCount = parseInt(document.getElementById('packageCount').value) || 1;
+
+            const selectedRadio = document.querySelector('input[name="courierRadio"]:checked');
+            const courierPartner = selectedRadio ? selectedRadio.value : "";
+
+            // Collect all package weights
+            const weightInputs = document.querySelectorAll('.pkg-weight-input');
+            let weights = [];
+            let totalWeight = 0;
+            let missingWeight = false;
+
+            weightInputs.forEach(input => {
+                const val = parseFloat(input.value);
+                if (isNaN(val) || val <= 0) {
+                    missingWeight = true;
+                } else {
+                    weights.push(val.toFixed(2));
+                    totalWeight += val;
+                }
+            });
+
+            // Strict Validation
+            if (!invoiceNo) {
+                alert("Please enter or scan the Invoice Number.");
+                document.getElementById('invoiceNo').focus();
+                return;
+            }
+
+            if (!docketNo) {
+                alert("Please enter or scan the Courier Docket Number.");
+                document.getElementById('docketNo').focus();
+                return;
+            }
+
+            if (!courierPartner) {
+                alert("Please select a Courier Partner.");
+                return;
+            }
+
+            if (missingWeight || weights.length < packageCount) {
+                alert("Please enter valid positive weights for all package fields.");
+                return;
+            }
+
+            const record = {
+                invoiceNo: invoiceNo,
+                docketNo: docketNo,
+                courierPartner: courierPartner,
+                packageCount: packageCount,
+                weights: weights.join(" + "), // Format: "2.5 + 3.1"
+                totalWeight: totalWeight.toFixed(2)
+            };
+
+            let records = getTodayRecords();
+
+            if (editingIndex >= 0) {
+                // Update existing record
+                records[editingIndex] = record;
+                editingIndex = -1;
+            } else {
+                // Add new record
+                records.push(record);
+            }
+
+            saveTodayRecords(records);
+            playBeepSound();
+            resetForm();
+        }
+
+        function resetForm() {
+            document.getElementById('invoiceNo').value = '';
+            document.getElementById('docketNo').value = '';
+            document.getElementById('packageCount').value = '1';
+            onPackageCountChange();
+
+            editingIndex = -1;
+            document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-plus-circle"></i><span>New Dispatch Entry</span>`;
+            document.getElementById('submitBtnText').innerText = "ADD DISPATCH ENTRY";
+            document.getElementById('cancelEditBtn').classList.add('hidden');
+        }
+
+        // 4. Render Table Logs & Edit/Delete Entries
+        function renderTodayScansTable() {
+            const records = getTodayRecords();
+            const tbody = document.getElementById('recordsTableBody');
+            document.getElementById('todayCountBadge').innerText = `${records.length} Records`;
+
+            if (records.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="p-4 text-center text-slate-500 font-sans">
+                            No dispatch entries logged today yet.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = records.map((r, index) => `
+                <tr class="hover:bg-slate-800/40">
+                    <td class="p-2 font-semibold text-sky-400">${r.invoiceNo}</td>
+                    <td class="p-2 text-slate-300 font-sans">${r.courierPartner}</td>
+                    <td class="p-2 text-slate-200">${r.docketNo}</td>
+                    <td class="p-2 text-center text-slate-300">${r.packageCount}</td>
+                    <td class="p-2 text-right text-amber-400 font-bold">${r.weights} = ${r.totalWeight}kg</td>
+                    <td class="p-2 text-center space-x-1">
+                        <button onclick="editRecord(${index})" class="text-sky-400 hover:text-sky-300 p-1" title="Edit">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <button onclick="deleteRecord(${index})" class="text-rose-400 hover:text-rose-300 p-1" title="Delete">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function editRecord(index) {
+            const records = getTodayRecords();
+            const r = records[index];
+            if (!r) return;
+
+            editingIndex = index;
+            document.getElementById('invoiceNo').value = r.invoiceNo;
+            document.getElementById('docketNo').value = r.docketNo;
+            document.getElementById('packageCount').value = r.packageCount;
+
+            // Check courier radio
+            const radio = document.querySelector(`input[name="courierRadio"][value="${r.courierPartner}"]`);
+            if (radio) radio.checked = true;
+
+            // Generate weights inputs and fill
+            onPackageCountChange();
+            const weightValues = r.weights.split(" + ");
+            const inputs = document.querySelectorAll('.pkg-weight-input');
+            inputs.forEach((input, i) => {
+                if (weightValues[i]) input.value = weightValues[i];
+            });
+
+            // Update UI for Edit mode
+            document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-pen-to-square"></i><span>Edit Dispatch Entry #${index + 1}</span>`;
+            document.getElementById('submitBtnText').innerText = "UPDATE DISPATCH ENTRY";
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function deleteRecord(index) {
+            if (confirm("Are you sure you want to delete this record?")) {
+                let records = getTodayRecords();
+                records.splice(index, 1);
+                saveTodayRecords(records);
+                if (editingIndex === index) resetForm();
+            }
+        }
+
+        // 5. Camera Barcode Scanner Integration
+        function startCameraScanner(targetFieldId) {
+            activeScanTargetField = targetFieldId;
+            document.getElementById('cameraTargetText').innerText = 
+                targetFieldId === 'invoiceNo' ? "Scanning Invoice Barcode" : "Scanning Courier Docket Sticker";
+            
+            openModal('cameraModal');
+
+            if (html5QrcodeScanner) {
+                try { html5QrcodeScanner.clear(); } catch(e){}
+            }
+
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            const config = { fps: 15, qrbox: { width: 280, height: 180 } };
+
+            html5QrcodeScanner.start(
+                { facingMode: "environment" },
+                config,
+                onBarcodeDetected,
+                () => {}
+            ).catch(err => {
+                alert("Camera access error: " + err);
+                closeModal('cameraModal');
+            });
+        }
+
+        function onBarcodeDetected(decodedText) {
+            if (!activeScanTargetField) return;
+
+            const inputField = document.getElementById(activeScanTargetField);
+            if (inputField) {
+                inputField.value = decodedText;
+            }
+
+            playBeepSound();
+            stopCameraScanner();
+
+            // Auto focus transition
+            if (activeScanTargetField === 'invoiceNo') {
+                setTimeout(() => document.getElementById('docketNo').focus(), 300);
+            }
+        }
+
+        function stopCameraScanner() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    html5QrcodeScanner.clear();
+                    closeModal('cameraModal');
+                }).catch(() => closeModal('cameraModal'));
+            } else {
+                closeModal('cameraModal');
+            }
+        }
+
+        // 6. Courier Vendor CRUD Management
+        function loadCouriers() {
+            const saved = localStorage.getItem('app_couriers');
+            if (saved) {
+                try { couriers = JSON.parse(saved); } catch(e){ couriers = defaultCouriers; }
+            } else {
+                couriers = defaultCouriers;
+                localStorage.setItem('app_couriers', JSON.stringify(couriers));
+            }
+        }
+
+        function saveCouriers() {
+            localStorage.setItem('app_couriers', JSON.stringify(couriers));
+            renderCourierRadios();
+            renderCouriersManagementList();
+        }
+
+        function renderCourierRadios() {
+            const container = document.getElementById('courierRadioContainer');
+            const selectedVal = document.querySelector('input[name="courierRadio"]:checked')?.value;
+
+            container.innerHTML = couriers.map((name, idx) => `
+                <label class="flex items-center space-x-2 p-2.5 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer has-[:checked]:border-sky-500 has-[:checked]:bg-sky-500/10">
+                    <input type="radio" name="courierRadio" value="${name}" ${selectedVal === name || (idx === 0 && !selectedVal) ? 'checked' : ''} class="accent-sky-500">
+                    <span class="text-xs font-medium text-slate-200 truncate">${name}</span>
+                </label>
+            `).join('');
+        }
+
+        function renderCouriersManagementList() {
+            const container = document.getElementById('couriersManagementList');
+            container.innerHTML = couriers.map((name, idx) => `
+                <div class="flex items-center justify-between p-2 bg-slate-900 border border-slate-800 rounded-xl">
+                    <span class="text-xs font-medium text-slate-200">${name}</span>
+                    <div class="flex space-x-1">
+                        <button onclick="editCourierName(${idx})" class="p-1 text-sky-400 hover:text-sky-300">
+                            <i class="fa-solid fa-pen text-2xs"></i>
+                        </button>
+                        <button onclick="deleteCourierName(${idx})" class="p-1 text-rose-400 hover:text-rose-300">
+                            <i class="fa-solid fa-trash text-2xs"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addNewCourier() {
+            const input = document.getElementById('newCourierInput');
+            const name = input.value.trim();
+            if (name && !couriers.includes(name)) {
+                couriers.push(name);
+                saveCouriers();
+                input.value = '';
+            }
+        }
+
+        function editCourierName(index) {
+            const current = couriers[index];
+            const updated = prompt("Edit Courier Partner Name:", current);
+            if (updated && updated.trim() !== '') {
+                couriers[index] = updated.trim();
+                saveCouriers();
+            }
+        }
+
+        function deleteCourierName(index) {
+            if (couriers.length <= 1) {
+                alert("At least one courier partner must remain.");
+                return;
+            }
+            if (confirm(`Delete courier partner "${couriers[index]}"?`)) {
+                couriers.splice(index, 1);
+                saveCouriers();
+            }
+        }
+
+        // 7. Semicolon Delimited CSV Generation & Sharing
+        function generateSemicolonCSV(records) {
+            // Semicolon (;) as delimiter as specified
+            let csv = "Invoice Number;Courier Docket Number;Courier Partner;Packages Count;Individual Weights (Kg);Total Weight (Kg)\n";
+            records.forEach(r => {
+                csv += `"${r.invoiceNo}";"${r.docketNo}";"${r.courierPartner}";"${r.packageCount}";"${r.weights}";"${r.totalWeight}"\n`;
+            });
+            return csv;
+        }
+
+        function shareTodayFileWhatsApp() {
+            const records = getTodayRecords();
+            if (records.length === 0) {
+                alert("No records to share today.");
+                return;
+            }
+
+            const fileName = getTodayFileName();
+            const csvContent = generateSemicolonCSV(records);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const file = new File([blob], fileName, { type: 'text/csv' });
+
+            // Native Mobile Web Share API
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({
+                    files: [file],
+                    title: fileName,
+                    text: `Courier dispatch CSV for ${getFormattedTodayDateString().replace(/_/g, '/')}`
+                }).catch(err => console.log('Share canceled', err));
+            } else {
+                downloadTodayCSV();
+            }
+        }
+
+        function downloadTodayCSV() {
+            const records = getTodayRecords();
+            if (records.length === 0) {
+                alert("No records to download today.");
+                return;
+            }
+
+            const fileName = getTodayFileName();
+            const csvContent = generateSemicolonCSV(records);
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Audio Feedback
+        function playBeepSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, ctx.currentTime);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.15);
+            } catch(e){}
+        }
+
+        // Modal Helpers
+        function openModal(id) {
+            if (id === 'manageCouriersModal') renderCouriersManagementList();
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // Offline PWA Service Worker
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                const swCode = `
+                    self.addEventListener('install', e => self.skipWaiting());
+                    self.addEventListener('activate', e => self.clients.claim());
+                    self.addEventListener('fetch', e => {
+                        e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+                    });
+                `;
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(swUrl).catch(() => {});
+            }
+        }
+    </script>
+</body>
+</html>
