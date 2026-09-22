@@ -362,9 +362,9 @@
 
     // 6. CSV Semicolon Delimited Exporter & Share
     function generateCSVString() {
-      let csv = "Invoice Number;Courier Docket Number;Courier Partner;Packages Count;Individual Weights;Total Weight\n";
+      let csv = "Invoice Number,Courier Docket Number,Courier Partner,Packages Count,Individual Weights,Total Weight\n";
       entries.forEach(e => {
-        csv += `${e.inv};${e.docket};${e.courier};${e.pkgs};${e.weightsStr};${e.totalWeight}\n`;
+        csv += `${e.inv},${e.docket},${e.courier},${e.pkgs},${e.weightsStr},${e.totalWeight}\n`;
       });
       return csv;
     }
