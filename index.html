@@ -12,7 +12,9 @@
     <!-- Dependencies: Tailwind CSS, FontAwesome, HTML5 QR Code Scanner -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!--script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script-->
+    <!-- New ZXing library for fast Code 128 barcode scanning -->
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
     
     <script>
         tailwind.config = {
@@ -571,7 +573,7 @@
             }
         }
 
-        // 5. Camera Barcode Scanner Integration
+      <!-- // 5. Camera Barcode Scanner Integration
         function startCameraScanner(targetFieldId) {
             activeScanTargetField = targetFieldId;
             document.getElementById('cameraTargetText').innerText = 
@@ -623,8 +625,33 @@
             } else {
                 closeModal('cameraModal');
             }
-        }
+        }-->
+        // Initialize ZXing Code Reader
+const codeReader = new ZXing.BrowserMultiFormatReader();
+let activeStream = null;
 
+// Function to start scanning when a camera button is clicked
+function startScanner(targetFieldId) {
+  // Show your camera modal/div
+  document.getElementById('camera-modal').style.display = 'block';
+
+  // Decode directly from video stream
+  codeReader.decodeFromVideoDevice(undefined, 'interactive', (result, err) => {
+    if (result) {
+      // 1. Populate the input field with the scanned barcode text
+      document.getElementById(targetFieldId).value = result.text;
+      
+      // 2. Play a quick beep / stop camera / close modal
+      stopScanner();
+    }
+  });
+}
+
+// Function to stop camera and close modal
+function stopScanner() {
+  codeReader.reset(); // Turns off phone camera light/stream
+  document.getElementById('camera-modal').style.display = 'none';
+}
         // 6. Courier Vendor CRUD Management
         function loadCouriers() {
             const saved = localStorage.getItem('app_couriers');
