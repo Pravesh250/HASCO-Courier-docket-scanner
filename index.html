@@ -704,9 +704,9 @@
         // 7. Semicolon Delimited CSV Generation & Sharing
         function generateSemicolonCSV(records) {
             // Semicolon (;) as delimiter as specified
-            let csv = "Invoice Number;Courier Docket Number;Courier Partner;Packages Count;Individual Weights (Kg);Total Weight (Kg)\n";
+            let csv = "Invoice Number,Courier Docket Number,Courier Partner,Packages Count,Individual Weights (Kg),Total Weight (Kg)\n";
             records.forEach(r => {
-                csv += `"${r.invoiceNo}";"${r.docketNo}";"${r.courierPartner}";"${r.packageCount}";"${r.weights}";"${r.totalWeight}"\n`;
+                csv += `"${r.invoiceNo}","${r.docketNo}","${r.courierPartner}","${r.packageCount}","${r.weights}","${r.totalWeight}"\n`;
             });
             return csv;
         }
