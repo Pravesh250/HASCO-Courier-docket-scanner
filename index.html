@@ -3,216 +3,410 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dispatch Barcode Scanner</title>
+  <title>Courier Dispatch Management</title>
   
-  <!-- Styling and Icons -->
+  <!-- Tailwind CSS & Font Awesome -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- High-Performance ZXing Barcode Engine for Code 128 & 1D Barcodes -->
+  <!-- Fast ZXing Engine for Code 128 & Courier Barcodes -->
   <script src="https://unpkg.com/@zxing/library@latest"></script>
+
+  <style>
+    body { background-color: #0b0f19; color: #f3f4f6; }
+    .card { background-color: #111827; border: 1px solid #1f2937; }
+    .input-field { background-color: #0b0f19; border: 1px solid #374151; color: #f3f4f6; }
+    .input-field:focus { border-color: #3b82f6; outline: none; }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen p-4 md:p-8 text-gray-800">
+<body class="p-3 md:p-6 max-w-xl mx-auto space-y-4">
 
-  <div class="max-w-xl mx-auto bg-white rounded-xl shadow-md p-6 space-y-6">
-    <h1 class="text-2xl font-bold text-center text-blue-600">
-      <i class="fa-solid fa-boxes-packing mr-2"></i>Dispatch Scanner
-    </h1>
-
-    <!-- Dispatch Form -->
-    <div class="space-y-4">
-      
-      <!-- Invoice Number -->
+  <!-- Active Batch Card -->
+  <div class="card p-4 rounded-xl flex items-center justify-between shadow-lg">
+    <div class="flex items-center gap-3">
+      <div class="bg-blue-600/20 text-blue-400 p-3 rounded-lg">
+        <i class="fa-solid fa-file-csv text-2xl"></i>
+      </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Number (Code 128)</label>
-        <div class="flex gap-2">
-          <input type="text" id="invoiceNumber" placeholder="Scan or enter Invoice No." class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-          <button onclick="openScanner('invoiceNumber')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-            <i class="fa-solid fa-camera"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Courier Docket Number -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Courier Docket Number</label>
-        <div class="flex gap-2">
-          <input type="text" id="docketNumber" placeholder="Scan or enter Docket No." class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-          <button onclick="openScanner('docketNumber')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-            <i class="fa-solid fa-camera"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Courier Partner -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Courier Partner</label>
-        <input type="text" id="courierPartner" placeholder="e.g. Shree Maruti, DTDC" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-      </div>
-
-      <!-- Package Details -->
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Package Count</label>
-          <input type="number" id="pkgCount" value="1" min="1" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Total Weight (kg)</label>
-          <input type="text" id="totalWeight" placeholder="e.g. 2.5" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-        </div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="pt-2 flex gap-3">
-        <button onclick="addEntry()" class="w-full bg-green-600 text-white font-semibold py-2 rounded-lg hover:bg-green-700 transition">
-          <i class="fa-solid fa-plus mr-1"></i> Add Entry
-        </button>
-        <button onclick="downloadCSV()" class="w-full bg-slate-800 text-white font-semibold py-2 rounded-lg hover:bg-slate-900 transition">
-          <i class="fa-solid fa-file-csv mr-1"></i> Export CSV
-        </button>
-      </div>
-
-    </div>
-
-    <!-- Logged Records Table -->
-    <div class="mt-6 border-t pt-4">
-      <h2 class="text-md font-semibold text-gray-700 mb-2">Current Session Log (<span id="logCount">0</span>)</h2>
-      <div class="overflow-x-auto max-h-48 overflow-y-auto border rounded-lg">
-        <table class="w-full text-left text-sm text-gray-600">
-          <thead class="bg-gray-50 border-b text-xs uppercase font-medium">
-            <tr>
-              <th class="p-2">Invoice</th>
-              <th class="p-2">Docket</th>
-              <th class="p-2">Courier</th>
-            </tr>
-          </thead>
-          <tbody id="logTableBody" class="divide-y">
-            <!-- Dynamic rows will be inserted here -->
-          </tbody>
-        </table>
+        <p class="text-xs text-gray-400 font-semibold tracking-wider uppercase">Active Batch File</p>
+        <p id="batchFileName" class="text-sm font-bold text-blue-400">Loading...</p>
       </div>
     </div>
+    <span id="recordBadge" class="bg-blue-900/50 text-blue-300 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-700">0 Records</span>
   </div>
 
-  <!-- Camera Modal Popup -->
-  <div id="cameraModal" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 hidden z-50">
-    <div class="bg-white rounded-xl p-4 max-w-sm w-full space-y-4 text-center shadow-2xl">
-      <h3 class="font-bold text-gray-800">Align Barcode in Camera View</h3>
-      
-      <!-- Video Element for ZXing Scanner -->
-      <div class="relative w-full h-64 bg-black rounded-lg overflow-hidden">
-        <video id="interactive" class="w-full h-full object-cover"></video>
-      </div>
+  <!-- New Entry Form -->
+  <div class="card p-5 rounded-xl space-y-4 shadow-xl">
+    <h2 class="text-sm font-bold text-blue-400 tracking-wider uppercase flex items-center gap-2">
+      <i class="fa-solid fa-circle-plus"></i> New Dispatch Entry
+    </h2>
 
-      <button onclick="closeScanner()" class="w-full bg-red-500 text-white font-semibold py-2 rounded-lg hover:bg-red-600 transition">
-        Cancel / Close Camera
+    <!-- 1. Invoice Number -->
+    <div>
+      <label class="block text-xs font-bold uppercase text-gray-300 mb-1">1. Invoice Number *</label>
+      <div class="flex gap-2">
+        <div class="relative w-full">
+          <i class="fa-solid fa-file-invoice absolute left-3 top-3 text-gray-500"></i>
+          <input type="text" id="invoiceNumber" placeholder="Enter or scan Invoice #" class="input-field w-full pl-9 pr-3 py-2 rounded-lg text-sm">
+        </div>
+        <button onclick="startScan('invoiceNumber')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-1.5 transition shrink-0">
+          <i class="fa-solid fa-camera"></i> Scan
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. Courier Docket Number -->
+    <div>
+      <label class="block text-xs font-bold uppercase text-gray-300 mb-1">2. Courier Docket Number *</label>
+      <div class="flex gap-2">
+        <div class="relative w-full">
+          <i class="fa-solid fa-barcode absolute left-3 top-3 text-gray-500"></i>
+          <input type="text" id="docketNumber" placeholder="Enter or scan sticker" class="input-field w-full pl-9 pr-3 py-2 rounded-lg text-sm">
+        </div>
+        <button onclick="startScan('docketNumber')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-1.5 transition shrink-0">
+          <i class="fa-solid fa-camera"></i> Scan
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. Courier Partner (Radio Group + Manager) -->
+    <div>
+      <div class="flex justify-between items-center mb-2">
+        <label class="block text-xs font-bold uppercase text-gray-300">3. Courier Partner *</label>
+        <button onclick="toggleVendorManager()" class="text-xs text-blue-400 hover:underline flex items-center gap-1">
+          <i class="fa-solid fa-gear"></i> Manage Vendors
+        </button>
+      </div>
+      
+      <!-- Dynamic Vendor Radio Buttons Container -->
+      <div id="vendorRadioGroup" class="grid grid-cols-2 gap-2"></div>
+
+      <!-- Vendor Manager Modal/Panel -->
+      <div id="vendorManagerPanel" class="hidden mt-3 p-3 bg-gray-900 border border-gray-700 rounded-lg space-y-2">
+        <div class="flex gap-2">
+          <input type="text" id="newVendorName" placeholder="New Courier Name" class="input-field w-full px-3 py-1.5 rounded text-xs">
+          <button onclick="addVendor()" class="bg-green-600 text-white px-3 py-1.5 rounded text-xs font-bold">Add</button>
+        </div>
+        <div id="vendorManageList" class="space-y-1 max-h-32 overflow-y-auto pt-2 border-t border-gray-800"></div>
+      </div>
+    </div>
+
+    <!-- 4. No. of Packages -->
+    <div>
+      <label class="block text-xs font-bold uppercase text-gray-300 mb-1">4. No. of Packages *</label>
+      <div class="relative">
+        <i class="fa-solid fa-boxes-stacked absolute left-3 top-3 text-gray-500"></i>
+        <input type="number" id="pkgCount" value="1" min="1" oninput="generateWeightFields()" class="input-field w-full pl-9 pr-3 py-2 rounded-lg text-sm">
+      </div>
+    </div>
+
+    <!-- 5. Gross Weight Entry (Dynamic Package Inputs) -->
+    <div>
+      <label class="block text-xs font-bold uppercase text-gray-300 mb-1">5. Gross Weight Entry (KG) *</label>
+      <div id="weightFieldsContainer" class="space-y-2"></div>
+    </div>
+
+    <!-- Submit / Add Button -->
+    <button id="addOrUpdateBtn" onclick="saveEntry()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg shadow-lg transition flex items-center justify-center gap-2">
+      <i class="fa-solid fa-check"></i> <span id="btnText">ADD DISPATCH ENTRY</span>
+    </button>
+
+  </div>
+
+  <!-- Entries Log Section -->
+  <div class="card p-4 rounded-xl space-y-3">
+    <div class="flex justify-between items-center">
+      <h3 class="text-xs font-bold text-gray-300 uppercase tracking-wider">
+        <i class="fa-solid fa-list"></i> Today's Entries Log
+      </h3>
+      <span class="text-xs text-gray-400">Format: <b>Semicolon CSV</b></span>
+    </div>
+
+    <div class="overflow-x-auto border border-gray-800 rounded-lg">
+      <table class="w-full text-left text-xs">
+        <thead class="bg-gray-800 text-gray-400 uppercase">
+          <tr>
+            <th class="p-2">INV #</th>
+            <th class="p-2">COURIER</th>
+            <th class="p-2">DOCKET</th>
+            <th class="p-2">PKGS</th>
+            <th class="p-2">WEIGHTS (KG)</th>
+            <th class="p-2 text-right">ACTION</th>
+          </tr>
+        </thead>
+        <tbody id="entriesTableBody" class="divide-y divide-gray-800 text-gray-300"></tbody>
+      </table>
+    </div>
+
+    <!-- Share / Download Buttons -->
+    <div class="flex gap-2 pt-2">
+      <button onclick="shareCSV()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
+        <i class="fa-solid fa-share-nodes"></i> Share CSV File
+      </button>
+      <button onclick="downloadCSV()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2.5 rounded-lg text-sm font-bold">
+        <i class="fa-solid fa-download"></i>
       </button>
     </div>
   </div>
 
-  <!-- Application Logic -->
-  <script>
-    let activeInputId = null;
-    let codeReader = null;
-    const records = [];
+  <!-- Camera Scanner Modal -->
+  <div id="scannerModal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 hidden z-50">
+    <div class="card p-4 rounded-xl max-w-sm w-full space-y-3 text-center shadow-2xl">
+      <h3 class="font-bold text-sm text-gray-200">Align Barcode inside Frame</h3>
+      <div class="relative w-full h-56 bg-black rounded-lg overflow-hidden border border-gray-700">
+        <video id="cameraPreview" class="w-full h-full object-cover"></video>
+      </div>
+      <button onclick="stopScan()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded-lg text-xs">
+        Close Camera
+      </button>
+    </div>
+  </div>
 
-    // Initialize ZXing Reader
+  <!-- App Script -->
+  <script>
+    let codeReader = null;
+    let activeTargetId = null;
+    let editingIndex = -1;
+    let vendors = JSON.parse(localStorage.getItem('courier_vendors')) || ['Shree Maruti', 'DTDC', 'BlueDart', 'Professional'];
+    let currentBatchName = '';
+    let entries = [];
+
     document.addEventListener('DOMContentLoaded', () => {
       codeReader = new ZXing.BrowserMultiFormatReader();
+      initBatchFile();
+      renderVendors();
+      generateWeightFields();
+      loadTodayEntries();
     });
 
-    // Open Camera Scanner
-    function openScanner(inputId) {
-      activeInputId = inputId;
-      document.getElementById('cameraModal').classList.remove('hidden');
+    // 1. Daily CSV File Batch Naming
+    function initBatchFile() {
+      const today = new Date();
+      const dd = String(today.getDate()).padStart(2, '0');
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const yyyy = today.getFullYear();
+      currentBatchName = `Courier details for- ${dd}_${mm}_${yyyy}.csv`;
+      document.getElementById('batchFileName').innerText = currentBatchName;
+    }
 
-      // Start decoding from active back camera
-      codeReader.decodeFromVideoDevice(undefined, 'interactive', (result, err) => {
+    // 2. Camera Barcode Scanning Logic
+    function startScan(inputId) {
+      activeTargetId = inputId;
+      document.getElementById('scannerModal').classList.remove('hidden');
+
+      codeReader.decodeFromVideoDevice(undefined, 'cameraPreview', (result, err) => {
         if (result) {
-          // Fill scanned barcode text into active input field
-          document.getElementById(activeInputId).value = result.text;
+          document.getElementById(activeTargetId).value = result.text;
           playBeep();
-          closeScanner();
+          stopScan();
         }
       });
     }
 
-    // Close Camera Scanner & Stop Camera Stream
-    function closeScanner() {
-      if (codeReader) {
-        codeReader.reset();
-      }
-      document.getElementById('cameraModal').classList.add('hidden');
-      activeInputId = null;
+    function stopScan() {
+      if (codeReader) codeReader.reset();
+      document.getElementById('scannerModal').classList.add('hidden');
+      activeTargetId = null;
     }
 
-    // Add Entry to Local Log
-    function addEntry() {
+    // 3. Dynamic Package Weight Generation
+    function generateWeightFields() {
+      const count = parseInt(document.getElementById('pkgCount').value) || 1;
+      const container = document.getElementById('weightFieldsContainer');
+      container.innerHTML = '';
+
+      for (let i = 1; i <= count; i++) {
+        const div = document.createElement('div');
+        div.className = "flex items-center gap-2";
+        div.innerHTML = `
+          <span class="text-xs text-gray-400 font-semibold w-24">Pkg ${i} Weight:</span>
+          <input type="number" step="0.01" class="pkg-weight-input input-field w-full px-3 py-1.5 rounded-lg text-sm" placeholder="e.g. 1.5">
+        `;
+        container.appendChild(div);
+      }
+    }
+
+    // 4. Vendor Radio Button Management
+    function renderVendors() {
+      const group = document.getElementById('vendorRadioGroup');
+      const manageList = document.getElementById('vendorManageList');
+      group.innerHTML = '';
+      manageList.innerHTML = '';
+
+      vendors.forEach((v, idx) => {
+        // Radio Button
+        const label = document.createElement('label');
+        label.className = "flex items-center gap-2 p-2 rounded-lg border border-gray-800 bg-gray-900 cursor-pointer hover:border-gray-700 text-xs";
+        label.innerHTML = `<input type="radio" name="courierPartner" value="${v}" class="text-blue-600"> <span>${v}</span>`;
+        group.appendChild(label);
+
+        // Manage Item
+        const item = document.createElement('div');
+        item.className = "flex justify-between items-center text-xs text-gray-300 py-1";
+        item.innerHTML = `<span>${v}</span> <button onclick="deleteVendor(${idx})" class="text-red-400"><i class="fa-solid fa-trash"></i></button>`;
+        manageList.appendChild(item);
+      });
+      localStorage.setItem('courier_vendors', JSON.stringify(vendors));
+    }
+
+    function toggleVendorManager() {
+      document.getElementById('vendorManagerPanel').classList.toggle('hidden');
+    }
+
+    function addVendor() {
+      const val = document.getElementById('newVendorName').value.trim();
+      if (val && !vendors.includes(val)) {
+        vendors.push(val);
+        document.getElementById('newVendorName').value = '';
+        renderVendors();
+      }
+    }
+
+    function deleteVendor(idx) {
+      vendors.splice(idx, 1);
+      renderVendors();
+    }
+
+    // 5. Save / Add Entry Logic
+    function saveEntry() {
       const inv = document.getElementById('invoiceNumber').value.trim();
       const docket = document.getElementById('docketNumber').value.trim();
-      const courier = document.getElementById('courierPartner').value.trim();
-      const count = document.getElementById('pkgCount').value.trim();
-      const weight = document.getElementById('totalWeight').value.trim();
+      const selectedRadio = document.querySelector('input[name="courierPartner"]:checked');
+      const pkgs = document.getElementById('pkgCount').value;
+      
+      const weightInputs = document.querySelectorAll('.pkg-weight-input');
+      const weights = Array.from(weightInputs).map(i => i.value.trim());
 
-      if (!inv || !docket) {
-        alert('Please scan or enter both Invoice Number and Courier Docket Number.');
+      // Validation Checks
+      if (!inv || !docket || !selectedRadio || weights.some(w => !w)) {
+        alert('Please fill out all mandatory fields (Invoice, Docket, Courier Selection, and all Package Weights).');
         return;
       }
 
-      records.push({ inv, docket, courier, count, weight });
+      const courier = selectedRadio.value;
+      const totalWeight = weights.reduce((a, b) => parseFloat(a || 0) + parseFloat(b || 0), 0).toFixed(2);
+      const entryObj = { inv, docket, courier, pkgs, weightsStr: weights.join(', '), totalWeight };
 
-      // Update UI Table
-      const tbody = document.getElementById('logTableBody');
-      const row = document.createElement('tr');
-      row.innerHTML = `<td class="p-2 font-medium">${inv}</td><td class="p-2">${docket}</td><td class="p-2">${courier || '-'}</td>`;
-      tbody.prepend(row);
+      if (editingIndex >= 0) {
+        entries[editingIndex] = entryObj;
+        editingIndex = -1;
+        document.getElementById('btnText').innerText = 'ADD DISPATCH ENTRY';
+      } else {
+        entries.push(entryObj);
+      }
 
-      document.getElementById('logCount').innerText = records.length;
+      localStorage.setItem(currentBatchName, JSON.stringify(entries));
+      resetForm();
+      renderTable();
+    }
 
-      // Reset form input fields for next box
+    function loadTodayEntries() {
+      entries = JSON.parse(localStorage.getItem(currentBatchName)) || [];
+      renderTable();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('entriesTableBody');
+      tbody.innerHTML = '';
+      document.getElementById('recordBadge').innerText = `${entries.length} Records`;
+
+      entries.forEach((e, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-2 font-semibold text-blue-400">${e.inv}</td>
+          <td class="p-2">${e.courier}</td>
+          <td class="p-2">${e.docket}</td>
+          <td class="p-2">${e.pkgs}</td>
+          <td class="p-2">${e.weightsStr} (${e.totalWeight}kg)</td>
+          <td class="p-2 text-right">
+            <button onclick="editEntry(${idx})" class="text-blue-400 mr-2"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="deleteEntry(${idx})" class="text-red-400"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function editEntry(idx) {
+      const e = entries[idx];
+      editingIndex = idx;
+      document.getElementById('invoiceNumber').value = e.inv;
+      document.getElementById('docketNumber').value = e.docket;
+      document.getElementById('pkgCount').value = e.pkgs;
+      
+      const radio = document.querySelector(`input[name="courierPartner"][value="${e.courier}"]`);
+      if (radio) radio.checked = true;
+
+      generateWeightFields();
+      const weightInputs = document.querySelectorAll('.pkg-weight-input');
+      const savedWeights = e.weightsStr.split(', ');
+      weightInputs.forEach((inp, i) => { if (savedWeights[i]) inp.value = savedWeights[i]; });
+
+      document.getElementById('btnText').innerText = 'UPDATE DISPATCH ENTRY';
+    }
+
+    function deleteEntry(idx) {
+      entries.splice(idx, 1);
+      localStorage.setItem(currentBatchName, JSON.stringify(entries));
+      renderTable();
+    }
+
+    function resetForm() {
       document.getElementById('invoiceNumber').value = '';
       document.getElementById('docketNumber').value = '';
-      document.getElementById('invoiceNumber').focus();
+      document.getElementById('pkgCount').value = '1';
+      const selectedRadio = document.querySelector('input[name="courierPartner"]:checked');
+      if (selectedRadio) selectedRadio.checked = false;
+      generateWeightFields();
     }
 
-    // Export Logged Records to Normal Comma CSV
-    function downloadCSV() {
-      if (records.length === 0) {
-        alert('No entries to export yet.');
-        return;
-      }
-
-      // Standard Comma-Separated Headers
-      let csvContent = "data:text/csv;charset=utf-8,Invoice Number,Courier Docket Number,Courier Partner,Packages Count,Total Weight\n";
-
-      // Add Data Rows with standard comma formatting
-      records.forEach(r => {
-        csvContent += `"${r.inv}","${r.docket}","${r.courier}",${r.count},"${r.weight}"\n`;
+    // 6. CSV Semicolon Delimited Exporter & Share
+    function generateCSVString() {
+      let csv = "Invoice Number;Courier Docket Number;Courier Partner;Packages Count;Individual Weights;Total Weight\n";
+      entries.forEach(e => {
+        csv += `${e.inv};${e.docket};${e.courier};${e.pkgs};${e.weightsStr};${e.totalWeight}\n`;
       });
-
-      // Trigger automatic file download
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `Dispatch_Log_${new Date().toISOString().slice(0,10)}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      return csv;
     }
 
-    // Audio feedback on barcode detection
+    function downloadCSV() {
+      if (entries.length === 0) return alert('No entries to download');
+      const csv = generateCSVString();
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = currentBatchName;
+      link.click();
+    }
+
+    async function shareCSV() {
+      if (entries.length === 0) return alert('No entries to share');
+      const csv = generateCSVString();
+      const file = new File([csv], currentBatchName, { type: 'text/csv' });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: 'Courier Dispatch Report',
+            text: `Dispatch CSV for ${currentBatchName}`,
+            files: [file]
+          });
+        } catch (e) {
+          downloadCSV();
+        }
+      } else {
+        downloadCSV();
+      }
+    }
+
     function playBeep() {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, ctx.currentTime);
         osc.connect(ctx.destination);
         osc.start();
-        osc.stop(ctx.currentTime + 0.15);
-      } catch (e) {
-        // Audio playback prevented by browser policy if un-interacted
-      }
+        osc.stop(ctx.currentTime + 0.1);
+      } catch(e) {}
     }
   </script>
 </body>
