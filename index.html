@@ -684,49 +684,54 @@
       link.click();
     }
 
-    async function shareZipPackage() {
-      if (entries.length === 0) return alert('No records to share');
+async function shareZipPackage() {
+  if (entries.length === 0) return alert('No records to share');
 
-      const zip = new JSZip();
-      const csvStr = generateCSVString();
-      zip.file(currentBatchName, csvStr);
+  const zip = new JSZip();
+  const csvStr = generateCSVString();
+  zip.file(currentBatchName, csvStr);
 
-      const imgFolder = zip.folder("Box_Photos");
+  const imgFolder = zip.folder("Box_Photos");
 
-      entries.forEach(e => {
-        if (e.photos) {
-          Object.keys(e.photos).forEach(packKey => {
-            const base64Data = e.photos[packKey].replace(/^data:image\/(png|jpeg);base64,/, "");
-            let filename = "";
-
-            if (e.mode === 'D') {
-              filename = `${e.invoices[0]}_pack1.jpg`;
-            } else {
-              filename = `${e.inv}_${packKey}.jpg`;
-            }
-            imgFolder.file(filename, base64Data, { base64: true });
-          });
-        }
+  entries.forEach(e => {
+    if (e.photos) {
+      Object.keys(e.photos).forEach(packKey => {
+        const base64Data = e.photos[packKey].replace(/^data:image\/(png|jpeg);base64,/, "");
+        let filename = (e.mode === 'D') ? `${e.invoices[0]}_pack1.jpg` : `${e.inv}_${packKey}.jpg`;
+        imgFolder.file(filename, base64Data, { base64: true });
       });
-
-      const content = await zip.generateAsync({ type: "blob" });
-      const zipFileName = `Dispatch_Package_${currentBatchDateStr}.zip`;
-      const zipFile = new File([content], zipFileName, { type: "application/zip" });
-
-      if (navigator.canShare && navigator.canShare({ files: [zipFile] })) {
-        try {
-          await navigator.share({
-            title: `Dispatch Reports ${currentBatchDateStr}`,
-            text: `Courier Dispatch details and box photos for ${currentBatchDateStr}`,
-            files: [zipFile]
-          });
-        } catch (err) {
-          downloadBlob(content, zipFileName);
-        }
-      } else {
-        downloadBlob(content, zipFileName);
-      }
     }
+  });
+
+  // Generate ZIP blob
+  const zipContent = await zip.generateAsync({ type: "blob" });
+  const zipFileName = `Dispatch_Package_${currentBatchDateStr}.zip`;
+
+  // Use application/x-zip-compressed for better Android intent matching
+  const zipFile = new File([zipContent], zipFileName, { type: "application/x-zip-compressed" });
+
+  // Verify browser and OS support
+  if (navigator.canShare && navigator.canShare({ files: [zipFile] })) {
+    try {
+      await navigator.share({
+        title: `Dispatch Report ${currentBatchDateStr}`,
+        text: `Attached dispatch report and package photos for ${currentBatchDateStr}.`,
+        files: [zipFile]
+      });
+      return; // Share dialog launched successfully
+    } catch (err) {
+      // User canceled share, or OS level rejection occurred
+      if (err.name !== 'AbortError') {
+        console.warn('Native share failed, falling back to direct download:', err);
+        downloadBlob(zipContent, zipFileName);
+      }
+      return;
+    }
+  }
+
+  // Fallback for browsers that don't support file sharing
+  downloadBlob(zipContent, zipFileName);
+}
 
     function downloadBlob(blob, filename) {
       const link = document.createElement("a");
