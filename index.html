@@ -3,152 +3,172 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Courier Dispatch Management</title>
+  <title>Courier Dispatch Management System</title>
   
   <!-- Tailwind CSS & Font Awesome -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- Fast ZXing Engine for Code 128 & Courier Barcodes -->
+  <!-- ZXing Barcode Engine & JSZip -->
   <script src="https://unpkg.com/@zxing/library@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <style>
-    body { background-color: #0b0f19; color: #f3f4f6; }
+    body { background-color: #0b0f19; color: #f3f4f6; font-family: system-ui, -apple-system, sans-serif; }
     .card { background-color: #111827; border: 1px solid #1f2937; }
     .input-field { background-color: #0b0f19; border: 1px solid #374151; color: #f3f4f6; }
     .input-field:focus { border-color: #3b82f6; outline: none; }
+    .mode-radio:checked + label { background-color: #1e3a8a; border-color: #3b82f6; color: #60a5fa; }
+
+    /* High contrast date picker styling */
+    .date-picker-input {
+      color: #facc15 !important; /* Bright Yellow */
+      font-weight: 800;
+      font-size: 0.95rem;
+      background-color: #1e293b;
+      border: 1px solid #facc15;
+      padding: 0.35rem 0.6rem;
+      border-radius: 0.5rem;
+      color-scheme: dark;
+    }
+
+    /* Make browser built-in calendar icon clearly visible in yellow */
+    .date-picker-input::-webkit-calendar-picker-indicator {
+      filter: invert(0.8) sepia(1) saturate(5) hue-rotate(5deg);
+      cursor: pointer;
+      opacity: 1;
+    }
   </style>
 </head>
-<body class="p-3 md:p-6 max-w-xl mx-auto space-y-4">
+<body class="p-3 md:p-6 max-w-xl mx-auto space-y-4 pb-12">
 
-  <!-- Active Batch Card -->
-  <div class="card p-4 rounded-xl flex items-center justify-between shadow-lg">
-    <div class="flex items-center gap-3">
-      <div class="bg-blue-600/20 text-blue-400 p-3 rounded-lg">
-        <i class="fa-solid fa-file-csv text-2xl"></i>
+  <!-- Active Batch & Date Selector -->
+  <div class="card p-4 rounded-xl flex flex-col gap-3 shadow-lg">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="bg-amber-500/20 text-yellow-400 p-2.5 rounded-lg border border-yellow-500/30">
+          <i class="fa-solid fa-calendar-days text-2xl"></i>
+        </div>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider text-yellow-400 mb-1">Select Dispatch Date *</p>
+          <!-- High Contrast Bright Yellow Date Picker -->
+          <input type="date" id="dispatchDate" onchange="changeBatchDate()" oninput="changeBatchDate()" class="date-picker-input shadow-md">
+        </div>
       </div>
-      <div>
-        <p class="text-xs text-gray-400 font-semibold tracking-wider uppercase">Active Batch File</p>
-        <p id="batchFileName" class="text-sm font-bold text-blue-400">Loading...</p>
-      </div>
+      <span id="recordBadge" class="bg-yellow-900/40 text-yellow-300 text-xs font-bold px-3 py-1.5 rounded-full border border-yellow-600 shadow">0 Records</span>
     </div>
-    <span id="recordBadge" class="bg-blue-900/50 text-blue-300 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-700">0 Records</span>
+    <div class="text-xs text-gray-400 border-t border-gray-800 pt-2 flex justify-between items-center">
+      <span>Active File: <b id="batchFileName" class="text-gray-200">Loading...</b></span>
+      <button onclick="clearCurrentBatch()" class="text-red-400 hover:underline"><i class="fa-solid fa-trash-can mr-1"></i>Clear Day Log</button>
+    </div>
   </div>
 
-  <!-- New Entry Form -->
+  <!-- Dispatch Entry Form -->
   <div class="card p-5 rounded-xl space-y-4 shadow-xl">
-    <h2 class="text-sm font-bold text-blue-400 tracking-wider uppercase flex items-center gap-2">
-      <i class="fa-solid fa-circle-plus"></i> New Dispatch Entry
+    <h2 class="text-sm font-bold text-yellow-400 tracking-wider uppercase flex items-center gap-2">
+      <i class="fa-solid fa-circle-plus"></i> New Consignment Entry
     </h2>
 
-    <!-- 1. Invoice Number -->
+    <!-- Workflow Selector -->
     <div>
-      <label class="block text-xs font-bold uppercase text-gray-300 mb-1">1. Invoice Number *</label>
-      <div class="flex gap-2">
-        <div class="relative w-full">
-          <i class="fa-solid fa-file-invoice absolute left-3 top-3 text-gray-500"></i>
-          <input type="text" id="invoiceNumber" placeholder="Enter or scan Invoice #" class="input-field w-full pl-9 pr-3 py-2 rounded-lg text-sm">
+      <label class="block text-xs font-bold uppercase text-gray-300 mb-2">Select Dispatch Workflow Case *</label>
+      <div class="grid grid-cols-1 gap-2 text-xs">
+        <div>
+          <input type="radio" id="modeA" name="dispatchMode" value="A" checked onchange="handleModeChange()" class="hidden mode-radio">
+          <label for="modeA" class="block p-2.5 rounded-lg border border-gray-800 bg-gray-900 cursor-pointer font-medium transition">
+            <b>Option A:</b> 1 Invoice | 1 Package
+          </label>
         </div>
-        <button onclick="startScan('invoiceNumber')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-1.5 transition shrink-0">
-          <i class="fa-solid fa-camera"></i> Scan
-        </button>
-      </div>
-    </div>
-
-    <!-- 2. Courier Partner (Radio Group + Manager) -->
-    <div>
-      <div class="flex justify-between items-center mb-2">
-        <label class="block text-xs font-bold uppercase text-gray-300">2. Courier Partner *</label>
-        <button onclick="toggleVendorManager()" class="text-xs text-blue-400 hover:underline flex items-center gap-1">
-          <i class="fa-solid fa-gear"></i> Manage Vendors
-        </button>
-      </div>
-      
-      <!-- Dynamic Vendor Radio Buttons Container -->
-      <div id="vendorRadioGroup" class="grid grid-cols-2 gap-2"></div>
-
-      <!-- Vendor Manager Modal/Panel -->
-      <div id="vendorManagerPanel" class="hidden mt-3 p-3 bg-gray-900 border border-gray-700 rounded-lg space-y-2">
-        <div class="flex gap-2">
-          <input type="text" id="newVendorName" placeholder="New Courier Name" class="input-field w-full px-3 py-1.5 rounded text-xs">
-          <button onclick="addVendor()" class="bg-green-600 text-white px-3 py-1.5 rounded text-xs font-bold">Add</button>
+        <div>
+          <input type="radio" id="modeB" name="dispatchMode" value="B" onchange="handleModeChange()" class="hidden mode-radio">
+          <label for="modeB" class="block p-2.5 rounded-lg border border-gray-800 bg-gray-900 cursor-pointer font-medium transition">
+            <b>Option B:</b> 1 Invoice | Multi-Pkg | Multi-Docket
+          </label>
         </div>
-        <div id="vendorManageList" class="space-y-1 max-h-32 overflow-y-auto pt-2 border-t border-gray-800"></div>
-      </div>
-    </div>
-
-    <!-- 3. No. of Packages -->
-    <div>
-      <label class="block text-xs font-bold uppercase text-gray-300 mb-1">3. No. of Packages *</label>
-      <div class="relative">
-        <i class="fa-solid fa-boxes-stacked absolute left-3 top-3 text-gray-500"></i>
-        <input type="number" id="pkgCount" value="1" min="1" oninput="generateWeightFields()" class="input-field w-full pl-9 pr-3 py-2 rounded-lg text-sm">
-      </div>
-    </div>
-
-    <!-- 4. Courier Docket Number -->
-    <div>
-      <label class="block text-xs font-bold uppercase text-gray-300 mb-1">4. Courier Docket Number *</label>
-      <div class="flex gap-2">
-        <div class="relative w-full">
-          <i class="fa-solid fa-barcode absolute left-3 top-3 text-gray-500"></i>
-          <input type="text" id="docketNumber" placeholder="Enter or scan sticker" class="input-field w-full pl-9 pr-3 py-2 rounded-lg text-sm">
+        <div>
+          <input type="radio" id="modeC" name="dispatchMode" value="C" onchange="handleModeChange()" class="hidden mode-radio">
+          <label for="modeC" class="block p-2.5 rounded-lg border border-gray-800 bg-gray-900 cursor-pointer font-medium transition">
+            <b>Option C:</b> 1 Invoice | Multi-Pkg | Single Docket
+          </label>
         </div>
-        <button onclick="startScan('docketNumber')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-1.5 transition shrink-0">
-          <i class="fa-solid fa-camera"></i> Scan
-        </button>
+        <div>
+          <input type="radio" id="modeD" name="dispatchMode" value="D" onchange="handleModeChange()" class="hidden mode-radio">
+          <label for="modeD" class="block p-2.5 rounded-lg border border-gray-800 bg-gray-900 cursor-pointer font-medium transition">
+            <b>Option D:</b> Multi-Invoice | Single Package
+          </label>
+        </div>
       </div>
     </div>
-    <!-- 5. Gross Weight Entry (Dynamic Package Inputs) -->
-    <div>
-      <label class="block text-xs font-bold uppercase text-gray-300 mb-1">5. Gross Weight Entry (KG) *</label>
-      <div id="weightFieldsContainer" class="space-y-2"></div>
+
+    <div class="border-t border-gray-800 pt-3 space-y-4">
+      <!-- 1. Invoice Number Section (First Field) -->
+      <div id="invoiceSection"></div>
+
+      <!-- 2. Courier Partner Section (Second Field) -->
+      <div>
+        <div class="flex justify-between items-center mb-2">
+          <label class="block text-xs font-bold uppercase text-gray-300">Courier Partner *</label>
+          <button onclick="toggleVendorManager()" class="text-xs text-yellow-400 hover:underline flex items-center gap-1 font-semibold">
+            <i class="fa-solid fa-gear"></i> Manage Vendors
+          </button>
+        </div>
+        <div id="vendorRadioGroup" class="grid grid-cols-2 gap-2"></div>
+        
+        <div id="vendorManagerPanel" class="hidden mt-3 p-3 bg-gray-900 border border-gray-700 rounded-lg space-y-2">
+          <div class="flex gap-2">
+            <input type="text" id="newVendorName" placeholder="New Courier Name" class="input-field w-full px-3 py-1.5 rounded text-xs">
+            <button onclick="addVendor()" class="bg-green-600 text-white px-3 py-1.5 rounded text-xs font-bold">Add</button>
+          </div>
+          <div id="vendorManageList" class="space-y-1 max-h-32 overflow-y-auto pt-2 border-t border-gray-800"></div>
+        </div>
+      </div>
+
+      <!-- 3+. Remaining Dynamic Form Controls (Package, Weight, Docket, Photos) -->
+      <div id="dynamicFormContainer" class="space-y-4 border-t border-gray-800/60 pt-3"></div>
     </div>
 
-    <!-- Submit / Add Button -->
-    <button id="addOrUpdateBtn" onclick="saveEntry()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg shadow-lg transition flex items-center justify-center gap-2">
-      <i class="fa-solid fa-check"></i> <span id="btnText">ADD DISPATCH ENTRY</span>
+    <!-- Submit Action Button -->
+    <button id="addOrUpdateBtn" onclick="saveEntry()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg shadow-lg transition flex items-center justify-center gap-2 mt-4">
+      <i class="fa-solid fa-check"></i> <span id="btnText">SAVE DISPATCH ENTRY</span>
     </button>
-
   </div>
 
-  <!-- Entries Log Section -->
+  <!-- Today Log Table -->
   <div class="card p-4 rounded-xl space-y-3">
     <div class="flex justify-between items-center">
       <h3 class="text-xs font-bold text-gray-300 uppercase tracking-wider">
-        <i class="fa-solid fa-list"></i> Today's Entries Log
+        <i class="fa-solid fa-list"></i> Batch Records Log
       </h3>
-      <span class="text-xs text-gray-400">Format: <b>Semicolon CSV</b></span>
+      <span class="text-xs text-gray-400">Photos: <b id="photoCountBadge" class="text-yellow-400">0 attached</b></span>
     </div>
 
     <div class="overflow-x-auto border border-gray-800 rounded-lg">
       <table class="w-full text-left text-xs">
         <thead class="bg-gray-800 text-gray-400 uppercase">
           <tr>
-            <th class="p-2">INV #</th>
-            <th class="p-2">COURIER</th>
-            <th class="p-2">DOCKET</th>
-            <th class="p-2">PKGS</th>
-            <th class="p-2">WEIGHTS (KG)</th>
-            <th class="p-2 text-right">ACTION</th>
+            <th class="p-2">Mode</th>
+            <th class="p-2">Invoice #</th>
+            <th class="p-2">Courier</th>
+            <th class="p-2">Docket / Details</th>
+            <th class="p-2 text-right">Action</th>
           </tr>
         </thead>
         <tbody id="entriesTableBody" class="divide-y divide-gray-800 text-gray-300"></tbody>
       </table>
     </div>
 
-    <!-- Share / Download Buttons -->
+    <!-- Export & Share Section -->
     <div class="flex gap-2 pt-2">
-      <button onclick="shareCSV()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg text-sm flex items-center justify-center gap-2">
-        <i class="fa-solid fa-share-nodes"></i> Share CSV File
+      <button onclick="shareZipPackage()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 shadow-lg">
+        <i class="fa-solid fa-share-nodes"></i> Share ZIP Package (CSV + Photos)
       </button>
-      <button onclick="downloadCSV()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2.5 rounded-lg text-sm font-bold">
-        <i class="fa-solid fa-download"></i>
+      <button onclick="downloadCSVOnly()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2.5 rounded-lg text-sm font-bold" title="Download CSV Only">
+        <i class="fa-solid fa-file-csv"></i>
       </button>
     </div>
   </div>
 
-  <!-- Camera Scanner Modal -->
+  <!-- Barcode Scanner Modal -->
   <div id="scannerModal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 hidden z-50">
     <div class="card p-4 rounded-xl max-w-sm w-full space-y-3 text-center shadow-2xl">
       <h3 class="font-bold text-sm text-gray-200">Align Barcode inside Frame</h3>
@@ -161,115 +181,330 @@
     </div>
   </div>
 
-  <!-- App Script -->
+  <!-- Photo Capture Modal -->
+  <div id="photoModal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-4 hidden z-50">
+    <div class="card p-4 rounded-xl max-w-sm w-full space-y-3 text-center">
+      <h3 id="photoModalTitle" class="font-bold text-xs text-gray-300 uppercase">Capture Package Box Photo</h3>
+      <div class="relative w-full h-64 bg-black rounded-lg overflow-hidden border border-gray-700">
+        <video id="photoPreview" class="w-full h-full object-cover" autoplay playsinline></video>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="capturePhotoSnap()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg text-xs">
+          <i class="fa-solid fa-camera mr-1"></i> Snap Photo
+        </button>
+        <button onclick="closePhotoModal()" class="bg-red-600 hover:bg-red-500 text-white font-bold px-4 py-2 rounded-lg text-xs">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="photoCanvas" class="hidden"></canvas>
+
   <script>
     let codeReader = null;
     let activeTargetId = null;
-    let editingIndex = -1;
+    let photoTargetKey = null;
+    let photoStream = null;
+    
     let vendors = JSON.parse(localStorage.getItem('courier_vendors')) || ['Shree Maruti', 'DTDC', 'ST COURIER', 'MARK'];
+    let currentBatchDateStr = '';
     let currentBatchName = '';
     let entries = [];
+    let photoStore = {};
 
     document.addEventListener('DOMContentLoaded', () => {
-      // 1. Configure Hints for High-Density 1D Barcodes
       const hints = new Map();
-      const formats = [ZXing.BarcodeFormat.CODE_128]; // Restrict ONLY to Code 128 for max speed
-  
-      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-      hints.set(ZXing.DecodeHintType.TRY_HARDER, true); // Force deep scan on small/thin lines
-
-  // Initialize reader with hints
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.CODE_128]);
+      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
       codeReader = new ZXing.BrowserMultiFormatReader(hints);
+
+      // Default Date Picker to Today
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      document.getElementById('dispatchDate').value = `${yyyy}-${mm}-${dd}`;
+      
       initBatchFile();
       renderVendors();
-      generateWeightFields();
+      handleModeChange();
       loadTodayEntries();
     });
 
-    // 1. Daily CSV File Batch Naming
     function initBatchFile() {
-      const today = new Date();
-      const dd = String(today.getDate()).padStart(2, '0');
-      const mm = String(today.getMonth() + 1).padStart(2, '0');
-      const yyyy = today.getFullYear();
-      currentBatchName = `Courier details for- ${dd}_${mm}_${yyyy}.csv`;
+      let dateVal = document.getElementById('dispatchDate').value;
+      if (!dateVal) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        dateVal = `${yyyy}-${mm}-${dd}`;
+        document.getElementById('dispatchDate').value = dateVal;
+      }
+      
+      const parts = dateVal.split('-');
+      currentBatchDateStr = `${parts[2]}_${parts[1]}_${parts[0]}`; // DD_MM_YYYY
+      currentBatchName = `Courier details for- ${currentBatchDateStr}.csv`;
       document.getElementById('batchFileName').innerText = currentBatchName;
     }
 
-// 2. High-Resolution Camera Scanner Function
-async function startScan(inputId) {
-  activeTargetId = inputId;
-  document.getElementById('scannerModal').classList.remove('hidden');
-
-  // Request high-resolution video stream with auto-focus
-  const constraints = {
-    video: {
-      facingMode: "environment",
-      width: { min: 1280, ideal: 1920, max: 3840 },
-      height: { min: 720, ideal: 1080, max: 2160 },
-      focusMode: { ideal: "continuous" }
+    function changeBatchDate() {
+      initBatchFile();
+      loadTodayEntries();
     }
-  };
 
-  try {
-    await codeReader.decodeFromConstraints(constraints, 'cameraPreview', (result, err) => {
-      if (result) {
-        document.getElementById(activeTargetId).value = result.text;
-        playBeep();
-        stopScan();
-      }
-    });
-  } catch (e) {
-    console.error("Camera access error:", e);
-    // Fallback if 1080p is rejected by the device
-    codeReader.decodeFromVideoDevice(undefined, 'cameraPreview', (result, err) => {
-      if (result) {
-        document.getElementById(activeTargetId).value = result.text;
-        playBeep();
-        stopScan();
-      }
-    });
-  }
-}
-
-function stopScan() {
-  if (codeReader) codeReader.reset();
-  document.getElementById('scannerModal').classList.add('hidden');
-  activeTargetId = null;
-}
-
-    // 3. Dynamic Package Weight Generation
-    function generateWeightFields() {
-      const count = parseInt(document.getElementById('pkgCount').value) || 1;
-      const container = document.getElementById('weightFieldsContainer');
+    function handleModeChange() {
+      const mode = document.querySelector('input[name="dispatchMode"]:checked').value;
+      const invContainer = document.getElementById('invoiceSection');
+      const container = document.getElementById('dynamicFormContainer');
+      
+      invContainer.innerHTML = '';
       container.innerHTML = '';
 
+      // Field 1: Invoice Number Section
+      if (mode === 'D') {
+        invContainer.innerHTML = `
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="block text-xs font-bold uppercase text-gray-300">Invoice Numbers *</label>
+              <button onclick="addInvoiceFieldD()" class="text-xs text-yellow-400 font-bold hover:underline">+ Add Invoice</button>
+            </div>
+            <div id="multiInvoiceContainerD" class="space-y-2"></div>
+          </div>
+        `;
+        addInvoiceFieldD();
+        addInvoiceFieldD();
+      } else {
+        invContainer.innerHTML = `
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Invoice Number *</label>
+            <div class="flex gap-2">
+              <input type="text" id="inv_1" placeholder="Scan or enter Invoice #" class="input-field w-full px-3 py-2 rounded-lg text-sm">
+              <button onclick="startScan('inv_1')" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-xs shrink-0"><i class="fa-solid fa-camera"></i> Scan</button>
+            </div>
+          </div>
+        `;
+      }
+
+      // Field 3+: Dynamic mode fields
+      if (mode === 'A') {
+        container.innerHTML = `
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-bold uppercase text-gray-300 mb-1">No. of Packages</label>
+              <input type="number" value="1" disabled class="input-field w-full px-3 py-2 rounded-lg text-sm bg-gray-800 text-gray-400 cursor-not-allowed">
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Gross Weight (KG) *</label>
+              <input type="number" step="0.01" id="weight_1" placeholder="e.g. 1.5" class="input-field w-full px-3 py-2 rounded-lg text-sm">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Courier Docket Number *</label>
+            <div class="flex gap-2">
+              <input type="text" id="docket_1" placeholder="Scan or enter Docket #" class="input-field w-full px-3 py-2 rounded-lg text-sm">
+              <button onclick="startScan('docket_1')" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-xs shrink-0"><i class="fa-solid fa-camera"></i> Scan</button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Box Photo Attachment</label>
+            <button onclick="openPhotoModal('pack1')" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+              <i class="fa-solid fa-camera text-yellow-400"></i> <span id="photoBtnLabel_pack1">Take Photo (pack1)</span>
+            </button>
+          </div>
+        `;
+      } else if (mode === 'B') {
+        container.innerHTML = `
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-300 mb-1">No. of Packages *</label>
+            <input type="number" id="multiPkgCount" value="2" min="2" oninput="renderMultiPkgFieldsB()" class="input-field w-full px-3 py-2 rounded-lg text-sm">
+          </div>
+          <div id="multiPkgContainerB" class="space-y-3"></div>
+        `;
+        renderMultiPkgFieldsB();
+      } else if (mode === 'C') {
+        container.innerHTML = `
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Courier Docket Number *</label>
+            <div class="flex gap-2">
+              <input type="text" id="docket_1" placeholder="Scan or enter Docket #" class="input-field w-full px-3 py-2 rounded-lg text-sm">
+              <button onclick="startScan('docket_1')" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-xs shrink-0"><i class="fa-solid fa-camera"></i> Scan</button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-300 mb-1">No. of Packages *</label>
+            <input type="number" id="multiPkgCountC" value="2" min="2" oninput="renderMultiPkgFieldsC()" class="input-field w-full px-3 py-2 rounded-lg text-sm">
+          </div>
+          <div id="multiPkgContainerC" class="space-y-3"></div>
+        `;
+        renderMultiPkgFieldsC();
+      } else if (mode === 'D') {
+        container.innerHTML = `
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-bold uppercase text-gray-300 mb-1">No. of Packages</label>
+              <input type="number" value="1" disabled class="input-field w-full px-3 py-2 rounded-lg text-sm bg-gray-800 text-gray-400 cursor-not-allowed">
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Gross Weight (KG) *</label>
+              <input type="number" step="0.01" id="weight_1" placeholder="e.g. 2.5" class="input-field w-full px-3 py-2 rounded-lg text-sm">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Courier Docket Number *</label>
+            <div class="flex gap-2">
+              <input type="text" id="docket_1" placeholder="Scan or enter Docket #" class="input-field w-full px-3 py-2 rounded-lg text-sm">
+              <button onclick="startScan('docket_1')" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-xs shrink-0"><i class="fa-solid fa-camera"></i> Scan</button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Box Photo Attachment</label>
+            <button onclick="openPhotoModal('pack1')" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+              <i class="fa-solid fa-camera text-yellow-400"></i> <span id="photoBtnLabel_pack1">Take Photo (pack1)</span>
+            </button>
+          </div>
+        `;
+      }
+    }
+
+    function renderMultiPkgFieldsB() {
+      const count = parseInt(document.getElementById('multiPkgCount').value) || 2;
+      const container = document.getElementById('multiPkgContainerB');
+      container.innerHTML = '';
       for (let i = 1; i <= count; i++) {
         const div = document.createElement('div');
-        div.className = "flex items-center gap-2";
+        div.className = "p-3 bg-gray-900 border border-gray-800 rounded-lg space-y-2";
         div.innerHTML = `
-          <span class="text-xs text-gray-400 font-semibold w-24">Pkg ${i} Weight:</span>
-          <input type="number" step="0.01" class="pkg-weight-input input-field w-full px-3 py-1.5 rounded-lg text-sm" placeholder="e.g. 1.5">
+          <p class="text-xs font-bold text-yellow-400">Package - ${i}</p>
+          <div class="flex gap-2">
+            <input type="text" id="docket_pkg_${i}" placeholder="Docket # for Pkg ${i}" class="input-field w-full px-3 py-1.5 rounded text-xs">
+            <button onclick="startScan('docket_pkg_${i}')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs shrink-0"><i class="fa-solid fa-camera"></i></button>
+          </div>
+          <div class="flex gap-2 items-center">
+            <input type="number" step="0.01" id="weight_pkg_${i}" placeholder="Weight (kg)" class="input-field w-full px-3 py-1.5 rounded text-xs">
+            <button onclick="openPhotoModal('pack${i}')" class="bg-gray-800 text-gray-300 border border-gray-700 px-3 py-1.5 rounded text-xs shrink-0 font-bold">
+              <i class="fa-solid fa-camera text-yellow-400"></i> <span id="photoBtnLabel_pack${i}">Photo</span>
+            </button>
+          </div>
         `;
         container.appendChild(div);
       }
     }
 
-    // 4. Vendor Radio Button Management
+    function renderMultiPkgFieldsC() {
+      const count = parseInt(document.getElementById('multiPkgCountC').value) || 2;
+      const container = document.getElementById('multiPkgContainerC');
+      container.innerHTML = '';
+      for (let i = 1; i <= count; i++) {
+        const div = document.createElement('div');
+        div.className = "p-3 bg-gray-900 border border-gray-800 rounded-lg space-y-2";
+        div.innerHTML = `
+          <p class="text-xs font-bold text-yellow-400">Package - ${i}</p>
+          <div class="flex gap-2 items-center">
+            <input type="number" step="0.01" id="weight_pkg_${i}" placeholder="Weight (kg) for Pkg ${i}" class="input-field w-full px-3 py-1.5 rounded text-xs">
+            <button onclick="openPhotoModal('pack${i}')" class="bg-gray-800 text-gray-300 border border-gray-700 px-3 py-1.5 rounded text-xs shrink-0 font-bold">
+              <i class="fa-solid fa-camera text-yellow-400"></i> <span id="photoBtnLabel_pack${i}">Photo</span>
+            </button>
+          </div>
+        `;
+        container.appendChild(div);
+      }
+    }
+
+    let invoiceCountD = 0;
+    function addInvoiceFieldD() {
+      invoiceCountD++;
+      const container = document.getElementById('multiInvoiceContainerD');
+      const div = document.createElement('div');
+      div.id = `invGroupD_${invoiceCountD}`;
+      div.className = "flex gap-2 items-center";
+      div.innerHTML = `
+        <input type="text" id="inv_D_${invoiceCountD}" placeholder="Invoice Number ${invoiceCountD}" class="input-field inv-field-d w-full px-3 py-1.5 rounded text-xs">
+        <button onclick="startScan('inv_D_${invoiceCountD}')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs shrink-0"><i class="fa-solid fa-camera"></i></button>
+      `;
+      container.appendChild(div);
+    }
+
+    async function startScan(inputId) {
+      activeTargetId = inputId;
+      document.getElementById('scannerModal').classList.remove('hidden');
+      const constraints = {
+        video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }
+      };
+      try {
+        await codeReader.decodeFromConstraints(constraints, 'cameraPreview', (result) => {
+          if (result) {
+            document.getElementById(activeTargetId).value = result.text;
+            playBeep();
+            stopScan();
+          }
+        });
+      } catch (e) {
+        codeReader.decodeFromVideoDevice(undefined, 'cameraPreview', (result) => {
+          if (result) {
+            document.getElementById(activeTargetId).value = result.text;
+            playBeep();
+            stopScan();
+          }
+        });
+      }
+    }
+
+    function stopScan() {
+      if (codeReader) codeReader.reset();
+      document.getElementById('scannerModal').classList.add('hidden');
+    }
+
+    async function openPhotoModal(packKey) {
+      photoTargetKey = packKey;
+      document.getElementById('photoModal').classList.remove('hidden');
+      try {
+        photoStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        document.getElementById('photoPreview').srcObject = photoStream;
+      } catch (e) {
+        alert('Could not open camera for photo: ' + e.message);
+        closePhotoModal();
+      }
+    }
+
+    function capturePhotoSnap() {
+      const video = document.getElementById('photoPreview');
+      const canvas = document.getElementById('photoCanvas');
+      canvas.width = 640;
+      canvas.height = 480;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, 640, 480);
+      
+      const base64Img = canvas.toDataURL('image/jpeg', 0.6);
+      photoStore[photoTargetKey] = base64Img;
+
+      const labelBtn = document.getElementById(`photoBtnLabel_${photoTargetKey}`);
+      if (labelBtn) labelBtn.innerText = 'Saved ✓';
+
+      closePhotoModal();
+    }
+
+    function closePhotoModal() {
+      if (photoStream) {
+        photoStream.getTracks().forEach(t => t.stop());
+      }
+      document.getElementById('photoModal').classList.add('hidden');
+    }
+
     function renderVendors() {
       const group = document.getElementById('vendorRadioGroup');
       const manageList = document.getElementById('vendorManageList');
       group.innerHTML = '';
       manageList.innerHTML = '';
-
       vendors.forEach((v, idx) => {
-        // Radio Button
         const label = document.createElement('label');
-        label.className = "flex items-center gap-2 p-2 rounded-lg border border-gray-800 bg-gray-900 cursor-pointer hover:border-gray-700 text-xs";
+        label.className = "flex items-center gap-2 p-2 rounded-lg border border-gray-800 bg-gray-900 cursor-pointer text-xs";
         label.innerHTML = `<input type="radio" name="courierPartner" value="${v}" class="text-blue-600"> <span>${v}</span>`;
         group.appendChild(label);
 
-        // Manage Item
         const item = document.createElement('div');
         item.className = "flex justify-between items-center text-xs text-gray-300 py-1";
         item.innerHTML = `<span>${v}</span> <button onclick="deleteVendor(${idx})" class="text-red-400"><i class="fa-solid fa-trash"></i></button>`;
@@ -296,37 +531,76 @@ function stopScan() {
       renderVendors();
     }
 
-    // 5. Save / Add Entry Logic
     function saveEntry() {
-      const inv = document.getElementById('invoiceNumber').value.trim();
-      const docket = document.getElementById('docketNumber').value.trim();
+      const mode = document.querySelector('input[name="dispatchMode"]:checked').value;
       const selectedRadio = document.querySelector('input[name="courierPartner"]:checked');
-      const pkgs = document.getElementById('pkgCount').value;
-      
-      const weightInputs = document.querySelectorAll('.pkg-weight-input');
-      const weights = Array.from(weightInputs).map(i => i.value.trim());
-
-      // Validation Checks
-      if (!inv || !docket || !selectedRadio || weights.some(w => !w)) {
-        alert('Please fill out all mandatory fields (Invoice, Docket, Courier Selection, and all Package Weights).');
-        return;
-      }
-
+      if (!selectedRadio) return alert('Please select a Courier Partner');
       const courier = selectedRadio.value;
-      const totalWeight = weights.reduce((a, b) => parseFloat(a || 0) + parseFloat(b || 0), 0).toFixed(2);
-      const entryObj = { inv, docket, courier, pkgs, weightsStr: weights.join(', '), totalWeight };
 
-      if (editingIndex >= 0) {
-        entries[editingIndex] = entryObj;
-        editingIndex = -1;
-        document.getElementById('btnText').innerText = 'ADD DISPATCH ENTRY';
-      } else {
-        entries.push(entryObj);
+      let entryObj = { mode, courier, date: currentBatchDateStr, photos: { ...photoStore } };
+
+      if (mode === 'A') {
+        const inv = document.getElementById('inv_1').value.trim();
+        const weight = document.getElementById('weight_1').value.trim();
+        const docket = document.getElementById('docket_1').value.trim();
+        if (!inv || !weight || !docket) return alert('Please fill in Invoice, Weight, and Docket Number.');
+        
+        entryObj.inv = inv;
+        entryObj.docket = docket;
+        entryObj.weight = weight;
+      } else if (mode === 'B') {
+        const inv = document.getElementById('inv_1').value.trim();
+        const count = parseInt(document.getElementById('multiPkgCount').value) || 2;
+        if (!inv) return alert('Please enter Invoice Number');
+        
+        let pkgDetails = [];
+        for (let i = 1; i <= count; i++) {
+          const doc = document.getElementById(`docket_pkg_${i}`).value.trim();
+          const w = document.getElementById(`weight_pkg_${i}`).value.trim();
+          if (!doc || !w) return alert(`Please enter Docket and Weight for Package ${i}`);
+          pkgDetails.push(`Pck${i}-${doc}-${w}`);
+        }
+        entryObj.inv = inv;
+        entryObj.pkgStr = pkgDetails.join(' || ');
+      } else if (mode === 'C') {
+        const inv = document.getElementById('inv_1').value.trim();
+        const docket = document.getElementById('docket_1').value.trim();
+        const count = parseInt(document.getElementById('multiPkgCountC').value) || 2;
+        if (!inv || !docket) return alert('Please enter Invoice and Docket Number');
+
+        let pkgWeights = [];
+        let total = 0;
+        for (let i = 1; i <= count; i++) {
+          const w = document.getElementById(`weight_pkg_${i}`).value.trim();
+          if (!w) return alert(`Please enter Weight for Package ${i}`);
+          pkgWeights.push(`Pck${i}-${w}`);
+          total += parseFloat(w) || 0;
+        }
+        entryObj.inv = inv;
+        entryObj.docket = docket;
+        entryObj.pkgStr = pkgWeights.join(' || ');
+        entryObj.totalWeight = total.toFixed(2);
+      } else if (mode === 'D') {
+        const invInputs = document.querySelectorAll('.inv-field-d');
+        let invs = Array.from(invInputs).map(inp => inp.value.trim()).filter(v => v !== '');
+        const weight = document.getElementById('weight_1').value.trim();
+        const docket = document.getElementById('docket_1').value.trim();
+        if (invs.length === 0 || !weight || !docket) return alert('Please enter at least one Invoice, Weight, and Docket Number.');
+
+        entryObj.invoices = invs;
+        entryObj.docket = docket;
+        entryObj.weight = weight;
       }
 
-      localStorage.setItem(currentBatchName, JSON.stringify(entries));
-      resetForm();
+      entries.push(entryObj);
+      saveEntriesToStorage();
+      photoStore = {};
+      handleModeChange();
       renderTable();
+    }
+
+    function saveEntriesToStorage() {
+      localStorage.setItem(currentBatchName, JSON.stringify(entries));
     }
 
     function loadTodayEntries() {
@@ -339,67 +613,69 @@ function stopScan() {
       tbody.innerHTML = '';
       document.getElementById('recordBadge').innerText = `${entries.length} Records`;
 
+      let photoCount = 0;
+
       entries.forEach((e, idx) => {
+        if (e.photos) photoCount += Object.keys(e.photos).length;
+
         const tr = document.createElement('tr');
+        let invCol = e.inv || (e.invoices ? e.invoices.join(', ') : '-');
+        let detailsCol = '';
+
+        if (e.mode === 'A') detailsCol = `Docket: ${e.docket} (${e.weight}kg)`;
+        else if (e.mode === 'B') detailsCol = e.pkgStr;
+        else if (e.mode === 'C') detailsCol = `Doc: ${e.docket} | ${e.pkgStr} | Tot: ${e.totalWeight}kg`;
+        else if (e.mode === 'D') detailsCol = `Doc: ${e.docket} (${e.weight}kg on 1st inv)`;
+
         tr.innerHTML = `
-          <td class="p-2 font-semibold text-blue-400">${e.inv}</td>
+          <td class="p-2 font-bold text-yellow-400">Opt ${e.mode}</td>
+          <td class="p-2 font-medium">${invCol}</td>
           <td class="p-2">${e.courier}</td>
-          <td class="p-2">${e.docket}</td>
-          <td class="p-2">${e.pkgs}</td>
-          <td class="p-2">${e.weightsStr} (${e.totalWeight}kg)</td>
+          <td class="p-2 text-xs truncate max-w-xs">${detailsCol}</td>
           <td class="p-2 text-right">
-            <button onclick="editEntry(${idx})" class="text-blue-400 mr-2"><i class="fa-solid fa-pen"></i></button>
             <button onclick="deleteEntry(${idx})" class="text-red-400"><i class="fa-solid fa-trash"></i></button>
           </td>
         `;
         tbody.appendChild(tr);
       });
-    }
 
-    function editEntry(idx) {
-      const e = entries[idx];
-      editingIndex = idx;
-      document.getElementById('invoiceNumber').value = e.inv;
-      document.getElementById('docketNumber').value = e.docket;
-      document.getElementById('pkgCount').value = e.pkgs;
-      
-      const radio = document.querySelector(`input[name="courierPartner"][value="${e.courier}"]`);
-      if (radio) radio.checked = true;
-
-      generateWeightFields();
-      const weightInputs = document.querySelectorAll('.pkg-weight-input');
-      const savedWeights = e.weightsStr.split(', ');
-      weightInputs.forEach((inp, i) => { if (savedWeights[i]) inp.value = savedWeights[i]; });
-
-      document.getElementById('btnText').innerText = 'UPDATE DISPATCH ENTRY';
+      document.getElementById('photoCountBadge').innerText = `${photoCount} attached`;
     }
 
     function deleteEntry(idx) {
       entries.splice(idx, 1);
-      localStorage.setItem(currentBatchName, JSON.stringify(entries));
+      saveEntriesToStorage();
       renderTable();
     }
 
-    function resetForm() {
-      document.getElementById('invoiceNumber').value = '';
-      document.getElementById('docketNumber').value = '';
-      document.getElementById('pkgCount').value = '1';
-      const selectedRadio = document.querySelector('input[name="courierPartner"]:checked');
-      if (selectedRadio) selectedRadio.checked = false;
-      generateWeightFields();
+    function clearCurrentBatch() {
+      if (confirm(`Are you sure you want to delete all entries for ${currentBatchDateStr}?`)) {
+        localStorage.removeItem(currentBatchName);
+        loadTodayEntries();
+      }
     }
 
-    // 6. CSV Semicolon Delimited Exporter & Share
     function generateCSVString() {
-      let csv = "Invoice Number,Courier Docket Number,Courier Partner,Packages Count,Individual Weights,Total Weight\n";
+      let csv = "Date,Invoice Number,Courier Partner Name,Docket Number,Package Details,Total Weight\n";
       entries.forEach(e => {
-        csv += `${e.inv},${e.docket},${e.courier},${e.pkgs},${e.weightsStr},${e.totalWeight}\n`;
+        if (e.mode === 'A') {
+          csv += `"${e.date}","${e.inv}","${e.courier}","${e.docket}","1 Pkg","${e.weight}"\n`;
+        } else if (e.mode === 'B') {
+          csv += `"${e.date}","${e.inv}","${e.courier}","","${e.pkgStr}",""\n`;
+        } else if (e.mode === 'C') {
+          csv += `"${e.date}","${e.inv}","${e.courier}","${e.docket}","${e.pkgStr}","${e.totalWeight}"\n`;
+        } else if (e.mode === 'D') {
+          e.invoices.forEach((invNum, i) => {
+            let weightVal = (i === 0) ? e.weight : "";
+            csv += `"${e.date}","${invNum}","${e.courier}","${e.docket}","1 Pkg","${weightVal}"\n`;
+          });
+        }
       });
       return csv;
     }
 
-    function downloadCSV() {
-      if (entries.length === 0) return alert('No entries to download');
+    function downloadCSVOnly() {
+      if (entries.length === 0) return alert('No records to export');
       const csv = generateCSVString();
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement("a");
@@ -408,24 +684,55 @@ function stopScan() {
       link.click();
     }
 
-    async function shareCSV() {
-      if (entries.length === 0) return alert('No entries to share');
-      const csv = generateCSVString();
-      const file = new File([csv], currentBatchName, { type: 'text/csv' });
+    async function shareZipPackage() {
+      if (entries.length === 0) return alert('No records to share');
 
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      const zip = new JSZip();
+      const csvStr = generateCSVString();
+      zip.file(currentBatchName, csvStr);
+
+      const imgFolder = zip.folder("Box_Photos");
+
+      entries.forEach(e => {
+        if (e.photos) {
+          Object.keys(e.photos).forEach(packKey => {
+            const base64Data = e.photos[packKey].replace(/^data:image\/(png|jpeg);base64,/, "");
+            let filename = "";
+
+            if (e.mode === 'D') {
+              filename = `${e.invoices[0]}_pack1.jpg`;
+            } else {
+              filename = `${e.inv}_${packKey}.jpg`;
+            }
+            imgFolder.file(filename, base64Data, { base64: true });
+          });
+        }
+      });
+
+      const content = await zip.generateAsync({ type: "blob" });
+      const zipFileName = `Dispatch_Package_${currentBatchDateStr}.zip`;
+      const zipFile = new File([content], zipFileName, { type: "application/zip" });
+
+      if (navigator.canShare && navigator.canShare({ files: [zipFile] })) {
         try {
           await navigator.share({
-            title: 'Courier Dispatch Report',
-            text: `Dispatch CSV for ${currentBatchName}`,
-            files: [file]
+            title: `Dispatch Reports ${currentBatchDateStr}`,
+            text: `Courier Dispatch details and box photos for ${currentBatchDateStr}`,
+            files: [zipFile]
           });
-        } catch (e) {
-          downloadCSV();
+        } catch (err) {
+          downloadBlob(content, zipFileName);
         }
       } else {
-        downloadCSV();
+        downloadBlob(content, zipFileName);
       }
+    }
+
+    function downloadBlob(blob, filename) {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
     }
 
     function playBeep() {
