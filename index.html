@@ -461,24 +461,32 @@
       document.getElementById('photoModal').classList.remove('hidden');
       try {
         photoStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+          video: { facingMode: 'environment', width: { ideal: 3840, min:1920 }, height: { ideal: 2160, min: 1080 } }
         });
         document.getElementById('photoPreview').srcObject = photoStream;
       } catch (e) {
-        alert('Could not open camera for photo: ' + e.message);
-        closePhotoModal();
+        try {
+      photoStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      document.getElementById('photoPreview').srcObject = photoStream;
+    } catch (err) {
+      alert('Could not open camera for photo: ' + err.message);
+      closePhotoModal();
+    }
       }
     }
 
     function capturePhotoSnap() {
       const video = document.getElementById('photoPreview');
       const canvas = document.getElementById('photoCanvas');
-      canvas.width = 640;
-      canvas.height = 480;
+      canvas.width = video.videoWidth || 1920;
+      canvas.height = video.videoWidth || 1080;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, 640, 480);
-      
-      const base64Img = canvas.toDataURL('image/jpeg', 0.6);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Increase JPEG quality to 0.95 (produces clear, sharp ~3MB-5MB photos)
+      const base64Img = canvas.toDataURL('image/jpeg', 0.95);
       photoStore[photoTargetKey] = base64Img;
 
       const labelBtn = document.getElementById(`photoBtnLabel_${photoTargetKey}`);
