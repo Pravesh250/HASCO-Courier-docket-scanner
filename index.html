@@ -19,25 +19,6 @@
     .input-field { background-color: #0b0f19; border: 1px solid #374151; color: #f3f4f6; }
     .input-field:focus { border-color: #3b82f6; outline: none; }
     .mode-radio:checked + label { background-color: #1e3a8a; border-color: #3b82f6; color: #60a5fa; }
-
-    /* High contrast date picker styling */
-    .date-picker-input {
-      color: #facc15 !important; /* Bright Yellow */
-      font-weight: 800;
-      font-size: 0.95rem;
-      background-color: #1e293b;
-      border: 1px solid #facc15;
-      padding: 0.35rem 0.6rem;
-      border-radius: 0.5rem;
-      color-scheme: dark;
-    }
-
-    /* Make browser built-in calendar icon clearly visible in yellow */
-    .date-picker-input::-webkit-calendar-picker-indicator {
-      filter: invert(0.8) sepia(1) saturate(5) hue-rotate(5deg);
-      cursor: pointer;
-      opacity: 1;
-    }
   </style>
 </head>
 <body class="p-3 md:p-6 max-w-xl mx-auto space-y-4 pb-12">
@@ -46,30 +27,28 @@
   <div class="card p-4 rounded-xl flex flex-col gap-3 shadow-lg">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="bg-amber-500/20 text-yellow-400 p-2.5 rounded-lg border border-yellow-500/30">
-          <i class="fa-solid fa-calendar-days text-2xl"></i>
+        <div class="bg-blue-600/20 text-blue-400 p-2.5 rounded-lg">
+          <i class="fa-solid fa-calendar-days text-xl"></i>
         </div>
         <div>
-          <p class="text-xs font-bold uppercase tracking-wider text-yellow-400 mb-1">Select Dispatch Date *</p>
-          <!-- High Contrast Bright Yellow Date Picker -->
-          <input type="date" id="dispatchDate" onchange="changeBatchDate()" oninput="changeBatchDate()" class="date-picker-input shadow-md">
+          <p class="text-xs text-gray-400 font-semibold uppercase">Dispatch Date</p>
+          <input type="date" id="dispatchDate" onchange="changeBatchDate()" oninput="changeBatchDate()" class="bg-transparent text-sm font-bold text-yellow-300 outline-none cursor-pointer">
         </div>
       </div>
-      <span id="recordBadge" class="bg-yellow-900/40 text-yellow-300 text-xs font-bold px-3 py-1.5 rounded-full border border-yellow-600 shadow">0 Records</span>
+      <span id="recordBadge" class="bg-blue-900/50 text-blue-300 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-700">0 Records</span>
     </div>
     <div class="text-xs text-gray-400 border-t border-gray-800 pt-2 flex justify-between items-center">
-      <span>Active File: <b id="batchFileName" class="text-gray-200">Loading...</b></span>
+      <span>File: <b id="batchFileName" class="text-gray-300">Loading...</b></span>
       <button onclick="clearCurrentBatch()" class="text-red-400 hover:underline"><i class="fa-solid fa-trash-can mr-1"></i>Clear Day Log</button>
     </div>
   </div>
 
   <!-- Dispatch Entry Form -->
   <div class="card p-5 rounded-xl space-y-4 shadow-xl">
-    <h2 class="text-sm font-bold text-yellow-400 tracking-wider uppercase flex items-center gap-2">
+    <h2 class="text-sm font-bold text-blue-400 tracking-wider uppercase flex items-center gap-2">
       <i class="fa-solid fa-circle-plus"></i> New Consignment Entry
     </h2>
 
-    <!-- Workflow Selector -->
     <div>
       <label class="block text-xs font-bold uppercase text-gray-300 mb-2">Select Dispatch Workflow Case *</label>
       <div class="grid grid-cols-1 gap-2 text-xs">
@@ -101,14 +80,12 @@
     </div>
 
     <div class="border-t border-gray-800 pt-3 space-y-4">
-      <!-- 1. Invoice Number Section (First Field) -->
       <div id="invoiceSection"></div>
 
-      <!-- 2. Courier Partner Section (Second Field) -->
       <div>
         <div class="flex justify-between items-center mb-2">
           <label class="block text-xs font-bold uppercase text-gray-300">Courier Partner *</label>
-          <button onclick="toggleVendorManager()" class="text-xs text-yellow-400 hover:underline flex items-center gap-1 font-semibold">
+          <button onclick="toggleVendorManager()" class="text-xs text-blue-400 hover:underline flex items-center gap-1">
             <i class="fa-solid fa-gear"></i> Manage Vendors
           </button>
         </div>
@@ -123,11 +100,9 @@
         </div>
       </div>
 
-      <!-- 3+. Remaining Dynamic Form Controls (Package, Weight, Docket, Photos) -->
       <div id="dynamicFormContainer" class="space-y-4 border-t border-gray-800/60 pt-3"></div>
     </div>
 
-    <!-- Submit Action Button -->
     <button id="addOrUpdateBtn" onclick="saveEntry()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg shadow-lg transition flex items-center justify-center gap-2 mt-4">
       <i class="fa-solid fa-check"></i> <span id="btnText">SAVE DISPATCH ENTRY</span>
     </button>
@@ -139,7 +114,7 @@
       <h3 class="text-xs font-bold text-gray-300 uppercase tracking-wider">
         <i class="fa-solid fa-list"></i> Batch Records Log
       </h3>
-      <span class="text-xs text-gray-400">Photos: <b id="photoCountBadge" class="text-yellow-400">0 attached</b></span>
+      <span class="text-xs text-gray-400">Photos: <b id="photoCountBadge" class="text-blue-400">0 attached</b></span>
     </div>
 
     <div class="overflow-x-auto border border-gray-800 rounded-lg">
@@ -157,7 +132,6 @@
       </table>
     </div>
 
-    <!-- Export & Share Section -->
     <div class="flex gap-2 pt-2">
       <button onclick="shareZipPackage()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 shadow-lg">
         <i class="fa-solid fa-share-nodes"></i> Share ZIP Package (CSV + Photos)
@@ -168,7 +142,7 @@
     </div>
   </div>
 
-  <!-- Barcode Scanner Modal -->
+  <!-- Camera Barcode Scanner Modal -->
   <div id="scannerModal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 hidden z-50">
     <div class="card p-4 rounded-xl max-w-sm w-full space-y-3 text-center shadow-2xl">
       <h3 class="font-bold text-sm text-gray-200">Align Barcode inside Frame</h3>
@@ -202,6 +176,7 @@
   <canvas id="photoCanvas" class="hidden"></canvas>
 
   <script>
+    let db;
     let codeReader = null;
     let activeTargetId = null;
     let photoTargetKey = null;
@@ -213,13 +188,64 @@
     let entries = [];
     let photoStore = {};
 
-    document.addEventListener('DOMContentLoaded', () => {
+    // IndexedDB Setup for Unlimited High-Res Storage
+    function initIndexedDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open('CourierDispatchDB', 1);
+        request.onupgradeneeded = (e) => {
+          db = e.target.result;
+          if (!db.objectStoreNames.contains('batches')) {
+            db.createObjectStore('batches');
+          }
+        };
+        request.onsuccess = (e) => {
+          db = e.target.result;
+          resolve(db);
+        };
+        request.onerror = (e) => reject(e);
+      });
+    }
+
+    function getBatchFromDB(key) {
+      return new Promise((resolve) => {
+        if (!db) return resolve([]);
+        const tx = db.transaction('batches', 'readonly');
+        const store = tx.objectStore('batches');
+        const req = store.get(key);
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => resolve([]);
+      });
+    }
+
+    function saveBatchToDB(key, data) {
+      return new Promise((resolve, reject) => {
+        if (!db) return reject();
+        const tx = db.transaction('batches', 'readwrite');
+        const store = tx.objectStore('batches');
+        const req = store.put(data, key);
+        req.onsuccess = () => resolve();
+        req.onerror = (e) => reject(e);
+      });
+    }
+
+    function deleteBatchFromDB(key) {
+      return new Promise((resolve) => {
+        if (!db) return resolve();
+        const tx = db.transaction('batches', 'readwrite');
+        const store = tx.objectStore('batches');
+        const req = store.delete(key);
+        req.onsuccess = () => resolve();
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initIndexedDB();
+
       const hints = new Map();
       hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.CODE_128]);
       hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
       codeReader = new ZXing.BrowserMultiFormatReader(hints);
 
-      // Default Date Picker to Today
       const today = new Date();
       const yyyy = today.getFullYear();
       const mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -229,7 +255,7 @@
       initBatchFile();
       renderVendors();
       handleModeChange();
-      loadTodayEntries();
+      await loadTodayEntries();
     });
 
     function initBatchFile() {
@@ -244,14 +270,14 @@
       }
       
       const parts = dateVal.split('-');
-      currentBatchDateStr = `${parts[2]}_${parts[1]}_${parts[0]}`; // DD_MM_YYYY
+      currentBatchDateStr = `${parts[2]}_${parts[1]}_${parts[0]}`;
       currentBatchName = `Courier details for- ${currentBatchDateStr}.csv`;
       document.getElementById('batchFileName').innerText = currentBatchName;
     }
 
-    function changeBatchDate() {
+    async function changeBatchDate() {
       initBatchFile();
-      loadTodayEntries();
+      await loadTodayEntries();
     }
 
     function handleModeChange() {
@@ -262,13 +288,12 @@
       invContainer.innerHTML = '';
       container.innerHTML = '';
 
-      // Field 1: Invoice Number Section
       if (mode === 'D') {
         invContainer.innerHTML = `
           <div>
             <div class="flex justify-between items-center mb-1">
               <label class="block text-xs font-bold uppercase text-gray-300">Invoice Numbers *</label>
-              <button onclick="addInvoiceFieldD()" class="text-xs text-yellow-400 font-bold hover:underline">+ Add Invoice</button>
+              <button onclick="addInvoiceFieldD()" class="text-xs text-blue-400 font-bold hover:underline">+ Add Invoice</button>
             </div>
             <div id="multiInvoiceContainerD" class="space-y-2"></div>
           </div>
@@ -281,13 +306,12 @@
             <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Invoice Number *</label>
             <div class="flex gap-2">
               <input type="text" id="inv_1" placeholder="Scan or enter Invoice #" class="input-field w-full px-3 py-2 rounded-lg text-sm">
-              <button onclick="startScan('inv_1')" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-xs shrink-0"><i class="fa-solid fa-camera"></i> Scan</button>
+              <button onclick="startScan('inv_1')" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-xs"><i class="fa-solid fa-camera"></i> Scan</button>
             </div>
           </div>
         `;
       }
 
-      // Field 3+: Dynamic mode fields
       if (mode === 'A') {
         container.innerHTML = `
           <div class="grid grid-cols-2 gap-2">
@@ -304,13 +328,13 @@
             <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Courier Docket Number *</label>
             <div class="flex gap-2">
               <input type="text" id="docket_1" placeholder="Scan or enter Docket #" class="input-field w-full px-3 py-2 rounded-lg text-sm">
-              <button onclick="startScan('docket_1')" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-xs shrink-0"><i class="fa-solid fa-camera"></i> Scan</button>
+              <button onclick="startScan('docket_1')" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-xs"><i class="fa-solid fa-camera"></i> Scan</button>
             </div>
           </div>
           <div>
             <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Box Photo Attachment</label>
             <button onclick="openPhotoModal('pack1')" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
-              <i class="fa-solid fa-camera text-yellow-400"></i> <span id="photoBtnLabel_pack1">Take Photo (pack1)</span>
+              <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack1">Take Photo (pack1)</span>
             </button>
           </div>
         `;
@@ -329,7 +353,7 @@
             <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Courier Docket Number *</label>
             <div class="flex gap-2">
               <input type="text" id="docket_1" placeholder="Scan or enter Docket #" class="input-field w-full px-3 py-2 rounded-lg text-sm">
-              <button onclick="startScan('docket_1')" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-xs shrink-0"><i class="fa-solid fa-camera"></i> Scan</button>
+              <button onclick="startScan('docket_1')" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-xs"><i class="fa-solid fa-camera"></i> Scan</button>
             </div>
           </div>
           <div>
@@ -355,13 +379,13 @@
             <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Courier Docket Number *</label>
             <div class="flex gap-2">
               <input type="text" id="docket_1" placeholder="Scan or enter Docket #" class="input-field w-full px-3 py-2 rounded-lg text-sm">
-              <button onclick="startScan('docket_1')" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-xs shrink-0"><i class="fa-solid fa-camera"></i> Scan</button>
+              <button onclick="startScan('docket_1')" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-xs"><i class="fa-solid fa-camera"></i> Scan</button>
             </div>
           </div>
           <div>
             <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Box Photo Attachment</label>
             <button onclick="openPhotoModal('pack1')" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
-              <i class="fa-solid fa-camera text-yellow-400"></i> <span id="photoBtnLabel_pack1">Take Photo (pack1)</span>
+              <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack1">Take Photo (pack1)</span>
             </button>
           </div>
         `;
@@ -376,15 +400,15 @@
         const div = document.createElement('div');
         div.className = "p-3 bg-gray-900 border border-gray-800 rounded-lg space-y-2";
         div.innerHTML = `
-          <p class="text-xs font-bold text-yellow-400">Package - ${i}</p>
+          <p class="text-xs font-bold text-blue-400">Package - ${i}</p>
           <div class="flex gap-2">
             <input type="text" id="docket_pkg_${i}" placeholder="Docket # for Pkg ${i}" class="input-field w-full px-3 py-1.5 rounded text-xs">
-            <button onclick="startScan('docket_pkg_${i}')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs shrink-0"><i class="fa-solid fa-camera"></i></button>
+            <button onclick="startScan('docket_pkg_${i}')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs"><i class="fa-solid fa-camera"></i></button>
           </div>
           <div class="flex gap-2 items-center">
             <input type="number" step="0.01" id="weight_pkg_${i}" placeholder="Weight (kg)" class="input-field w-full px-3 py-1.5 rounded text-xs">
             <button onclick="openPhotoModal('pack${i}')" class="bg-gray-800 text-gray-300 border border-gray-700 px-3 py-1.5 rounded text-xs shrink-0 font-bold">
-              <i class="fa-solid fa-camera text-yellow-400"></i> <span id="photoBtnLabel_pack${i}">Photo</span>
+              <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack${i}">Photo</span>
             </button>
           </div>
         `;
@@ -400,11 +424,11 @@
         const div = document.createElement('div');
         div.className = "p-3 bg-gray-900 border border-gray-800 rounded-lg space-y-2";
         div.innerHTML = `
-          <p class="text-xs font-bold text-yellow-400">Package - ${i}</p>
+          <p class="text-xs font-bold text-blue-400">Package - ${i}</p>
           <div class="flex gap-2 items-center">
             <input type="number" step="0.01" id="weight_pkg_${i}" placeholder="Weight (kg) for Pkg ${i}" class="input-field w-full px-3 py-1.5 rounded text-xs">
             <button onclick="openPhotoModal('pack${i}')" class="bg-gray-800 text-gray-300 border border-gray-700 px-3 py-1.5 rounded text-xs shrink-0 font-bold">
-              <i class="fa-solid fa-camera text-yellow-400"></i> <span id="photoBtnLabel_pack${i}">Photo</span>
+              <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack${i}">Photo</span>
             </button>
           </div>
         `;
@@ -421,7 +445,7 @@
       div.className = "flex gap-2 items-center";
       div.innerHTML = `
         <input type="text" id="inv_D_${invoiceCountD}" placeholder="Invoice Number ${invoiceCountD}" class="input-field inv-field-d w-full px-3 py-1.5 rounded text-xs">
-        <button onclick="startScan('inv_D_${invoiceCountD}')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs shrink-0"><i class="fa-solid fa-camera"></i></button>
+        <button onclick="startScan('inv_D_${invoiceCountD}')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs"><i class="fa-solid fa-camera"></i></button>
       `;
       container.appendChild(div);
     }
@@ -461,31 +485,38 @@
       document.getElementById('photoModal').classList.remove('hidden');
       try {
         photoStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 3840, min:1920 }, height: { ideal: 2160, min: 1080 } }
+          video: { 
+            facingMode: { ideal: 'environment' }, 
+            width: { ideal: 3840, min: 1920 }, 
+            height: { ideal: 2160, min: 1080 } 
+          }
         });
         document.getElementById('photoPreview').srcObject = photoStream;
       } catch (e) {
         try {
-      photoStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
-      document.getElementById('photoPreview').srcObject = photoStream;
-    } catch (err) {
-      alert('Could not open camera for photo: ' + err.message);
-      closePhotoModal();
-    }
+          photoStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' }
+          });
+          document.getElementById('photoPreview').srcObject = photoStream;
+        } catch (err) {
+          alert('Could not open camera for photo: ' + err.message);
+          closePhotoModal();
+        }
       }
     }
 
     function capturePhotoSnap() {
       const video = document.getElementById('photoPreview');
       const canvas = document.getElementById('photoCanvas');
+      
       canvas.width = video.videoWidth || 1920;
-      canvas.height = video.videoWidth || 1080;
+      canvas.height = video.videoHeight || 1080;
+      
       const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      // Increase JPEG quality to 0.95 (produces clear, sharp ~3MB-5MB photos)
+      
       const base64Img = canvas.toDataURL('image/jpeg', 0.95);
       photoStore[photoTargetKey] = base64Img;
 
@@ -539,7 +570,7 @@
       renderVendors();
     }
 
-    function saveEntry() {
+    async function saveEntry() {
       const mode = document.querySelector('input[name="dispatchMode"]:checked').value;
       const selectedRadio = document.querySelector('input[name="courierPartner"]:checked');
       if (!selectedRadio) return alert('Please select a Courier Partner');
@@ -601,18 +632,18 @@
       }
 
       entries.push(entryObj);
-      saveEntriesToStorage();
+      await saveEntriesToStorage();
       photoStore = {};
       handleModeChange();
       renderTable();
     }
 
-    function saveEntriesToStorage() {
-      localStorage.setItem(currentBatchName, JSON.stringify(entries));
+    async function saveEntriesToStorage() {
+      await saveBatchToDB(currentBatchName, entries);
     }
 
-    function loadTodayEntries() {
-      entries = JSON.parse(localStorage.getItem(currentBatchName)) || [];
+    async function loadTodayEntries() {
+      entries = await getBatchFromDB(currentBatchName);
       renderTable();
     }
 
@@ -636,7 +667,7 @@
         else if (e.mode === 'D') detailsCol = `Doc: ${e.docket} (${e.weight}kg on 1st inv)`;
 
         tr.innerHTML = `
-          <td class="p-2 font-bold text-yellow-400">Opt ${e.mode}</td>
+          <td class="p-2 font-bold text-blue-400">Opt ${e.mode}</td>
           <td class="p-2 font-medium">${invCol}</td>
           <td class="p-2">${e.courier}</td>
           <td class="p-2 text-xs truncate max-w-xs">${detailsCol}</td>
@@ -650,32 +681,32 @@
       document.getElementById('photoCountBadge').innerText = `${photoCount} attached`;
     }
 
-    function deleteEntry(idx) {
+    async function deleteEntry(idx) {
       entries.splice(idx, 1);
-      saveEntriesToStorage();
+      await saveEntriesToStorage();
       renderTable();
     }
 
-    function clearCurrentBatch() {
+    async function clearCurrentBatch() {
       if (confirm(`Are you sure you want to delete all entries for ${currentBatchDateStr}?`)) {
-        localStorage.removeItem(currentBatchName);
-        loadTodayEntries();
+        await deleteBatchFromDB(currentBatchName);
+        await loadTodayEntries();
       }
     }
 
     function generateCSVString() {
-      let csv = "Date,Invoice Number,Courier Partner Name,Docket Number,Package Details,Total Weight\n";
+      let csv = "Date,Invoice Number,Courier Partner Name,Details / Docket,Total Weight\n";
       entries.forEach(e => {
         if (e.mode === 'A') {
-          csv += `"${e.date}","${e.inv}","${e.courier}","${e.docket}","1 Pkg","${e.weight}"\n`;
+          csv += `"${e.date}","${e.inv}","${e.courier}","${e.docket}","${e.weight}"\n`;
         } else if (e.mode === 'B') {
-          csv += `"${e.date}","${e.inv}","${e.courier}","","${e.pkgStr}",""\n`;
+          csv += `"${e.date}","${e.inv}","${e.courier}","${e.pkgStr}",""\n`;
         } else if (e.mode === 'C') {
           csv += `"${e.date}","${e.inv}","${e.courier}","${e.docket}","${e.pkgStr}","${e.totalWeight}"\n`;
         } else if (e.mode === 'D') {
           e.invoices.forEach((invNum, i) => {
             let weightVal = (i === 0) ? e.weight : "";
-            csv += `"${e.date}","${invNum}","${e.courier}","${e.docket}","1 Pkg","${weightVal}"\n`;
+            csv += `"${e.date}","${invNum}","${e.courier}","${e.docket}","${weightVal}"\n`;
           });
         }
       });
@@ -692,54 +723,47 @@
       link.click();
     }
 
-async function shareZipPackage() {
-  if (entries.length === 0) return alert('No records to share');
+    async function shareZipPackage() {
+      if (entries.length === 0) return alert('No records to share');
 
-  const zip = new JSZip();
-  const csvStr = generateCSVString();
-  zip.file(currentBatchName, csvStr);
+      const zip = new JSZip();
+      const csvStr = generateCSVString();
+      zip.file(currentBatchName, csvStr);
 
-  const imgFolder = zip.folder("Box_Photos");
+      const imgFolder = zip.folder("Box_Photos");
 
-  entries.forEach(e => {
-    if (e.photos) {
-      Object.keys(e.photos).forEach(packKey => {
-        const base64Data = e.photos[packKey].replace(/^data:image\/(png|jpeg);base64,/, "");
-        let filename = (e.mode === 'D') ? `${e.invoices[0]}_pack1.jpg` : `${e.inv}_${packKey}.jpg`;
-        imgFolder.file(filename, base64Data, { base64: true });
+      entries.forEach(e => {
+        if (e.photos) {
+          Object.keys(e.photos).forEach(packKey => {
+            const base64Data = e.photos[packKey].replace(/^data:image\/(png|jpeg);base64,/, "");
+            let filename = (e.mode === 'D') ? `${e.invoices[0]}_pack1.jpg` : `${e.inv}_${packKey}.jpg`;
+            imgFolder.file(filename, base64Data, { base64: true });
+          });
+        }
       });
-    }
-  });
 
-  // Generate ZIP blob
-  const zipContent = await zip.generateAsync({ type: "blob" });
-  const zipFileName = `Dispatch_Package_${currentBatchDateStr}.zip`;
+      const zipContent = await zip.generateAsync({ type: "blob" });
+      const zipFileName = `Dispatch_Package_${currentBatchDateStr}.zip`;
+      const zipFile = new File([zipContent], zipFileName, { type: "application/x-zip-compressed" });
 
-  // Use application/x-zip-compressed for better Android intent matching
-  const zipFile = new File([zipContent], zipFileName, { type: "application/x-zip-compressed" });
-
-  // Verify browser and OS support
-  if (navigator.canShare && navigator.canShare({ files: [zipFile] })) {
-    try {
-      await navigator.share({
-        title: `Dispatch Report ${currentBatchDateStr}`,
-        text: `Attached dispatch report and package photos for ${currentBatchDateStr}.`,
-        files: [zipFile]
-      });
-      return; // Share dialog launched successfully
-    } catch (err) {
-      // User canceled share, or OS level rejection occurred
-      if (err.name !== 'AbortError') {
-        console.warn('Native share failed, falling back to direct download:', err);
-        downloadBlob(zipContent, zipFileName);
+      if (navigator.canShare && navigator.canShare({ files: [zipFile] })) {
+        try {
+          await navigator.share({
+            title: `Dispatch Report ${currentBatchDateStr}`,
+            text: `Attached dispatch report and package photos for ${currentBatchDateStr}.`,
+            files: [zipFile]
+          });
+          return;
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            downloadBlob(zipContent, zipFileName);
+          }
+          return;
+        }
       }
-      return;
-    }
-  }
 
-  // Fallback for browsers that don't support file sharing
-  downloadBlob(zipContent, zipFileName);
-}
+      downloadBlob(zipContent, zipFileName);
+    }
 
     function downloadBlob(blob, filename) {
       const link = document.createElement("a");
