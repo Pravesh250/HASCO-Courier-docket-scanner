@@ -46,7 +46,7 @@
   <!-- Dispatch Entry Form -->
   <div class="card p-5 rounded-xl space-y-4 shadow-xl">
     <h2 class="text-sm font-bold text-blue-400 tracking-wider uppercase flex items-center gap-2">
-      <i class="fa-solid fa-circle-plus"></i> New Consignment Entry
+      <i class="fa-solid fa-circle-plus"></i> <span id="formTitleText">New Consignment Entry</span>
     </h2>
 
     <div>
@@ -103,9 +103,14 @@
       <div id="dynamicFormContainer" class="space-y-4 border-t border-gray-800/60 pt-3"></div>
     </div>
 
-    <button id="addOrUpdateBtn" onclick="saveEntry()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg shadow-lg transition flex items-center justify-center gap-2 mt-4">
-      <i class="fa-solid fa-check"></i> <span id="btnText">SAVE DISPATCH ENTRY</span>
-    </button>
+    <div class="flex gap-2 mt-4">
+      <button id="addOrUpdateBtn" onclick="saveEntry()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg shadow-lg transition flex items-center justify-center gap-2">
+        <i class="fa-solid fa-check"></i> <span id="btnText">SAVE DISPATCH ENTRY</span>
+      </button>
+      <button id="cancelEditBtn" onclick="cancelEdit()" class="hidden bg-gray-700 hover:bg-gray-600 text-gray-200 font-bold px-4 py-3 rounded-lg text-xs">
+        Cancel
+      </button>
+    </div>
   </div>
 
   <!-- Today Log Table -->
@@ -121,7 +126,7 @@
       <table class="w-full text-left text-xs">
         <thead class="bg-gray-800 text-gray-400 uppercase">
           <tr>
-            <th class="p-2">Mode</th>
+            <th class="p-2">Workflow Option</th>
             <th class="p-2">Invoice #</th>
             <th class="p-2">Courier</th>
             <th class="p-2">Docket / Details</th>
@@ -181,6 +186,7 @@
     let activeTargetId = null;
     let photoTargetKey = null;
     let photoStream = null;
+    let editingIndex = -1;
     
     let vendors = JSON.parse(localStorage.getItem('courier_vendors')) || ['Shree Maruti', 'DTDC', 'ST COURIER', 'MARK'];
     let currentBatchDateStr = '';
@@ -188,7 +194,13 @@
     let entries = [];
     let photoStore = {};
 
-    // IndexedDB Setup for Unlimited High-Res Storage
+    const OPTION_DESCRIPTIONS = {
+      'A': '1 Invoice | 1 Package',
+      'B': '1 Invoice | Multi-Pkg | Multi-Docket',
+      'C': '1 Invoice | Multi-Pkg | Single Docket',
+      'D': 'Multi-Invoice | Single Package'
+    };
+
     function initIndexedDB() {
       return new Promise((resolve, reject) => {
         const request = indexedDB.open('CourierDispatchDB', 1);
@@ -314,6 +326,12 @@
 
       if (mode === 'A') {
         container.innerHTML = `
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Box Photo Attachment</label>
+            <button onclick="openPhotoModal('pack1')" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+              <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack1">Take Photo (pack1)</span>
+            </button>
+          </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block text-xs font-bold uppercase text-gray-300 mb-1">No. of Packages</label>
@@ -330,12 +348,6 @@
               <input type="text" id="docket_1" placeholder="Scan or enter Docket #" class="input-field w-full px-3 py-2 rounded-lg text-sm">
               <button onclick="startScan('docket_1')" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-xs"><i class="fa-solid fa-camera"></i> Scan</button>
             </div>
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Box Photo Attachment</label>
-            <button onclick="openPhotoModal('pack1')" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
-              <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack1">Take Photo (pack1)</span>
-            </button>
           </div>
         `;
       } else if (mode === 'B') {
@@ -365,6 +377,12 @@
         renderMultiPkgFieldsC();
       } else if (mode === 'D') {
         container.innerHTML = `
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Box Photo Attachment</label>
+            <button onclick="openPhotoModal('pack1')" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+              <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack1">Take Photo (pack1)</span>
+            </button>
+          </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block text-xs font-bold uppercase text-gray-300 mb-1">No. of Packages</label>
@@ -381,12 +399,6 @@
               <input type="text" id="docket_1" placeholder="Scan or enter Docket #" class="input-field w-full px-3 py-2 rounded-lg text-sm">
               <button onclick="startScan('docket_1')" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-xs"><i class="fa-solid fa-camera"></i> Scan</button>
             </div>
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Box Photo Attachment</label>
-            <button onclick="openPhotoModal('pack1')" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
-              <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack1">Take Photo (pack1)</span>
-            </button>
           </div>
         `;
       }
@@ -406,10 +418,10 @@
             <button onclick="startScan('docket_pkg_${i}')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs"><i class="fa-solid fa-camera"></i></button>
           </div>
           <div class="flex gap-2 items-center">
-            <input type="number" step="0.01" id="weight_pkg_${i}" placeholder="Weight (kg)" class="input-field w-full px-3 py-1.5 rounded text-xs">
             <button onclick="openPhotoModal('pack${i}')" class="bg-gray-800 text-gray-300 border border-gray-700 px-3 py-1.5 rounded text-xs shrink-0 font-bold">
               <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack${i}">Photo</span>
             </button>
+            <input type="number" step="0.01" id="weight_pkg_${i}" placeholder="Weight (kg)" class="input-field w-full px-3 py-1.5 rounded text-xs">
           </div>
         `;
         container.appendChild(div);
@@ -426,10 +438,10 @@
         div.innerHTML = `
           <p class="text-xs font-bold text-blue-400">Package - ${i}</p>
           <div class="flex gap-2 items-center">
-            <input type="number" step="0.01" id="weight_pkg_${i}" placeholder="Weight (kg) for Pkg ${i}" class="input-field w-full px-3 py-1.5 rounded text-xs">
             <button onclick="openPhotoModal('pack${i}')" class="bg-gray-800 text-gray-300 border border-gray-700 px-3 py-1.5 rounded text-xs shrink-0 font-bold">
               <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack${i}">Photo</span>
             </button>
+            <input type="number" step="0.01" id="weight_pkg_${i}" placeholder="Weight (kg) for Pkg ${i}" class="input-field w-full px-3 py-1.5 rounded text-xs">
           </div>
         `;
         container.appendChild(div);
@@ -631,11 +643,111 @@
         entryObj.weight = weight;
       }
 
-      entries.push(entryObj);
+      if (editingIndex >= 0) {
+        entries[editingIndex] = entryObj;
+      } else {
+        entries.push(entryObj);
+      }
+
       await saveEntriesToStorage();
+      resetForm();
+      renderTable();
+    }
+
+    function editEntry(index) {
+      editingIndex = index;
+      const entry = entries[index];
+
+      // Set radio mode
+      const radio = document.querySelector(`input[name="dispatchMode"][value="${entry.mode}"]`);
+      if (radio) {
+        radio.checked = true;
+        handleModeChange();
+      }
+
+      // Set courier partner
+      const courierRadio = document.querySelector(`input[name="courierPartner"][value="${entry.courier}"]`);
+      if (courierRadio) courierRadio.checked = true;
+
+      // Restore photos
+      photoStore = { ...entry.photos };
+
+      if (entry.mode === 'A') {
+        document.getElementById('inv_1').value = entry.inv || '';
+        document.getElementById('weight_1').value = entry.weight || '';
+        document.getElementById('docket_1').value = entry.docket || '';
+        if (photoStore['pack1']) {
+          const btn = document.getElementById('photoBtnLabel_pack1');
+          if (btn) btn.innerText = 'Saved ✓';
+        }
+      } else if (entry.mode === 'B') {
+        document.getElementById('inv_1').value = entry.inv || '';
+        const pkgArr = entry.pkgStr ? entry.pkgStr.split(' || ') : [];
+        document.getElementById('multiPkgCount').value = pkgArr.length || 2;
+        renderMultiPkgFieldsB();
+        pkgArr.forEach((pStr, idx) => {
+          const parts = pStr.split('-');
+          const i = idx + 1;
+          if (document.getElementById(`docket_pkg_${i}`)) document.getElementById(`docket_pkg_${i}`).value = parts[1] || '';
+          if (document.getElementById(`weight_pkg_${i}`)) document.getElementById(`weight_pkg_${i}`).value = parts[2] || '';
+          if (photoStore[`pack${i}`]) {
+            const btn = document.getElementById(`photoBtnLabel_pack${i}`);
+            if (btn) btn.innerText = 'Saved ✓';
+          }
+        });
+      } else if (entry.mode === 'C') {
+        document.getElementById('inv_1').value = entry.inv || '';
+        document.getElementById('docket_1').value = entry.docket || '';
+        const pkgArr = entry.pkgStr ? entry.pkgStr.split(' || ') : [];
+        document.getElementById('multiPkgCountC').value = pkgArr.length || 2;
+        renderMultiPkgFieldsC();
+        pkgArr.forEach((pStr, idx) => {
+          const parts = pStr.split('-');
+          const i = idx + 1;
+          if (document.getElementById(`weight_pkg_${i}`)) document.getElementById(`weight_pkg_${i}`).value = parts[1] || '';
+          if (photoStore[`pack${i}`]) {
+            const btn = document.getElementById(`photoBtnLabel_pack${i}`);
+            if (btn) btn.innerText = 'Saved ✓';
+          }
+        });
+      } else if (entry.mode === 'D') {
+        document.getElementById('weight_1').value = entry.weight || '';
+        document.getElementById('docket_1').value = entry.docket || '';
+        const container = document.getElementById('multiInvoiceContainerD');
+        container.innerHTML = '';
+        invoiceCountD = 0;
+        if (entry.invoices && entry.invoices.length > 0) {
+          entry.invoices.forEach(invVal => {
+            addInvoiceFieldD();
+            document.getElementById(`inv_D_${invoiceCountD}`).value = invVal;
+          });
+        } else {
+          addInvoiceFieldD();
+        }
+        if (photoStore['pack1']) {
+          const btn = document.getElementById('photoBtnLabel_pack1');
+          if (btn) btn.innerText = 'Saved ✓';
+        }
+      }
+
+      // UI Changes for edit mode
+      document.getElementById('formTitleText').innerText = 'Edit Consignment Entry';
+      document.getElementById('btnText').innerText = 'UPDATE DISPATCH ENTRY';
+      document.getElementById('cancelEditBtn').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelEdit() {
+      resetForm();
+    }
+
+    function resetForm() {
+      editingIndex = -1;
       photoStore = {};
       handleModeChange();
-      renderTable();
+      document.getElementById('formTitleText').innerText = 'New Consignment Entry';
+      document.getElementById('btnText').innerText = 'SAVE DISPATCH ENTRY';
+      document.getElementById('cancelEditBtn').classList.add('hidden');
     }
 
     async function saveEntriesToStorage() {
@@ -666,13 +778,16 @@
         else if (e.mode === 'C') detailsCol = `Doc: ${e.docket} | ${e.pkgStr} | Tot: ${e.totalWeight}kg`;
         else if (e.mode === 'D') detailsCol = `Doc: ${e.docket} (${e.weight}kg on 1st inv)`;
 
+        const optionDesc = OPTION_DESCRIPTIONS[e.mode] || `Option ${e.mode}`;
+
         tr.innerHTML = `
-          <td class="p-2 font-bold text-blue-400">Opt ${e.mode}</td>
+          <td class="p-2 font-bold text-blue-400 text-xs">${optionDesc}</td>
           <td class="p-2 font-medium">${invCol}</td>
           <td class="p-2">${e.courier}</td>
           <td class="p-2 text-xs truncate max-w-xs">${detailsCol}</td>
-          <td class="p-2 text-right">
-            <button onclick="deleteEntry(${idx})" class="text-red-400"><i class="fa-solid fa-trash"></i></button>
+          <td class="p-2 text-right flex justify-end gap-2">
+            <button onclick="editEntry(${idx})" class="text-yellow-400 hover:text-yellow-300" title="Edit Entry"><i class="fa-solid fa-pen-to-square"></i></button>
+            <button onclick="deleteEntry(${idx})" class="text-red-400 hover:text-red-300" title="Delete Entry"><i class="fa-solid fa-trash"></i></button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -682,31 +797,37 @@
     }
 
     async function deleteEntry(idx) {
-      entries.splice(idx, 1);
-      await saveEntriesToStorage();
-      renderTable();
+      if (confirm('Are you sure you want to delete this record?')) {
+        entries.splice(idx, 1);
+        await saveEntriesToStorage();
+        if (editingIndex === idx) resetForm();
+        renderTable();
+      }
     }
 
     async function clearCurrentBatch() {
       if (confirm(`Are you sure you want to delete all entries for ${currentBatchDateStr}?`)) {
         await deleteBatchFromDB(currentBatchName);
+        resetForm();
         await loadTodayEntries();
       }
     }
 
     function generateCSVString() {
-      let csv = "Date,Invoice Number,Courier Partner Name,Details / Docket,Total Weight\n";
+      let csv = "Workflow Option,Date,Invoice Number,Courier Partner Name,Details / Docket,Total Weight\n";
       entries.forEach(e => {
+        const optionDesc = OPTION_DESCRIPTIONS[e.mode] || `Option ${e.mode}`;
+
         if (e.mode === 'A') {
-          csv += `"${e.date}","${e.inv}","${e.courier}","${e.docket}","${e.weight}"\n`;
+          csv += `"${optionDesc}","${e.date}","${e.inv}","${e.courier}","${e.docket}","${e.weight}"\n`;
         } else if (e.mode === 'B') {
-          csv += `"${e.date}","${e.inv}","${e.courier}","${e.pkgStr}",""\n`;
+          csv += `"${optionDesc}","${e.date}","${e.inv}","${e.courier}","${e.pkgStr}",""\n`;
         } else if (e.mode === 'C') {
-          csv += `"${e.date}","${e.inv}","${e.courier}","${e.docket}","${e.pkgStr}","${e.totalWeight}"\n`;
+          csv += `"${optionDesc}","${e.date}","${e.inv}","${e.courier}","${e.docket}","${e.pkgStr}","${e.totalWeight}"\n`;
         } else if (e.mode === 'D') {
           e.invoices.forEach((invNum, i) => {
             let weightVal = (i === 0) ? e.weight : "";
-            csv += `"${e.date}","${invNum}","${e.courier}","${e.docket}","${weightVal}"\n`;
+            csv += `"${optionDesc}","${e.date}","${invNum}","${e.courier}","${e.docket}","${weightVal}"\n`;
           });
         }
       });
