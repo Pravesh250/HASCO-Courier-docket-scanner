@@ -327,7 +327,13 @@
       if (mode === 'A') {
         container.innerHTML = `
           <div>
-
+            <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Courier Docket Number *</label>
+            <div class="flex gap-2">
+              <input type="text" id="docket_1" placeholder="Scan or enter Docket #" class="input-field w-full px-3 py-2 rounded-lg text-sm">
+              <button onclick="startScan('docket_1')" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-xs"><i class="fa-solid fa-camera"></i> Scan</button>
+            </div>
+          </div>
+          <div>
             <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Box Photo Attachment</label>
             <button onclick="openPhotoModal('pack1')" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
               <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack1">Take Photo (pack1)</span>
