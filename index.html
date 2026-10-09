@@ -254,8 +254,14 @@
       await initIndexedDB();
 
       const hints = new Map();
-      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.CODE_128]);
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+        ZXing.BarcodeFormat.CODE_128,
+        ZXing.BarcodeFormat.CODE_39,
+        ZXing.BarcodeFormat.EAN_13
+      ]);
       hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+      hints.set(ZXing.DecodeHintType.ALSO_INVERTED, true);
+
       codeReader = new ZXing.BrowserMultiFormatReader(hints);
 
       const today = new Date();
@@ -339,7 +345,7 @@
               <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack1">Take Photo (pack1)</span>
             </button>
           </div>
-            <div class="grid grid-cols-2 gap-2">
+          <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block text-xs font-bold uppercase text-gray-300 mb-1">No. of Packages</label>
               <input type="number" value="1" disabled class="input-field w-full px-3 py-2 rounded-lg text-sm bg-gray-800 text-gray-400 cursor-not-allowed">
@@ -348,9 +354,6 @@
               <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Gross Weight (KG) *</label>
               <input type="number" step="0.01" id="weight_1" placeholder="e.g. 1.5" class="input-field w-full px-3 py-2 rounded-lg text-sm">
             </div>
-          </div>
-          <div>
-
           </div>
         `;
       } else if (mode === 'B') {
@@ -386,6 +389,7 @@
               <input type="text" id="docket_1" placeholder="Scan or enter Docket #" class="input-field w-full px-3 py-2 rounded-lg text-sm">
               <button onclick="startScan('docket_1')" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-xs"><i class="fa-solid fa-camera"></i> Scan</button>
             </div>
+          </div>
           <div>
             <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Box Photo Attachment</label>
             <button onclick="openPhotoModal('pack1')" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
@@ -397,11 +401,10 @@
               <label class="block text-xs font-bold uppercase text-gray-300 mb-1">No. of Packages</label>
               <input type="number" value="1" disabled class="input-field w-full px-3 py-2 rounded-lg text-sm bg-gray-800 text-gray-400 cursor-not-allowed">
             </div>
-          </div>
             <div>
               <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Gross Weight (KG) *</label>
               <input type="number" step="0.01" id="weight_1" placeholder="e.g. 2.5" class="input-field w-full px-3 py-2 rounded-lg text-sm">
-            </div>   
+            </div>
           </div>
         `;
       }
@@ -468,11 +471,19 @@
     async function startScan(inputId) {
       activeTargetId = inputId;
       document.getElementById('scannerModal').classList.remove('hidden');
+
       const constraints = {
-        video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920, min: 1280 },
+          height: { ideal: 1080, min: 720 },
+          focusMode: { ideal: "continuous" },
+          frameRate: { ideal: 30, max: 60 }
+        }
       };
+
       try {
-        await codeReader.decodeFromConstraints(constraints, 'cameraPreview', (result) => {
+        await codeReader.decodeFromConstraints(constraints, 'cameraPreview', (result, err) => {
           if (result) {
             document.getElementById(activeTargetId).value = result.text;
             playBeep();
@@ -480,7 +491,7 @@
           }
         });
       } catch (e) {
-        codeReader.decodeFromVideoDevice(undefined, 'cameraPreview', (result) => {
+        codeReader.decodeFromVideoDevice(undefined, 'cameraPreview', (result, err) => {
           if (result) {
             document.getElementById(activeTargetId).value = result.text;
             playBeep();
@@ -661,18 +672,15 @@
       editingIndex = index;
       const entry = entries[index];
 
-      // Set radio mode
       const radio = document.querySelector(`input[name="dispatchMode"][value="${entry.mode}"]`);
       if (radio) {
         radio.checked = true;
         handleModeChange();
       }
 
-      // Set courier partner
       const courierRadio = document.querySelector(`input[name="courierPartner"][value="${entry.courier}"]`);
       if (courierRadio) courierRadio.checked = true;
 
-      // Restore photos
       photoStore = { ...entry.photos };
 
       if (entry.mode === 'A') {
@@ -733,7 +741,6 @@
         }
       }
 
-      // UI Changes for edit mode
       document.getElementById('formTitleText').innerText = 'Edit Consignment Entry';
       document.getElementById('btnText').innerText = 'UPDATE DISPATCH ENTRY';
       document.getElementById('cancelEditBtn').classList.remove('hidden');
