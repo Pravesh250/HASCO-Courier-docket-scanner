@@ -9,7 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- ZXing Barcode Engine & JSZip -->
+  <!-- ZXing Barcode Engine Fallback & JSZip -->
   <script src="https://unpkg.com/@zxing/library@latest"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
@@ -152,7 +152,7 @@
     <div class="card p-4 rounded-xl max-w-sm w-full space-y-3 text-center shadow-2xl">
       <h3 class="font-bold text-sm text-gray-200">Align Barcode inside Frame</h3>
       <div class="relative w-full h-56 bg-black rounded-lg overflow-hidden border border-gray-700">
-        <video id="cameraPreview" class="w-full h-full object-cover"></video>
+        <video id="cameraPreview" class="w-full h-full object-cover" autoplay playsinline muted></video>
       </div>
       <button onclick="stopScan()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded-lg text-xs">
         Close Camera
@@ -165,7 +165,7 @@
     <div class="card p-4 rounded-xl max-w-sm w-full space-y-3 text-center">
       <h3 id="photoModalTitle" class="font-bold text-xs text-gray-300 uppercase">Capture Package Box Photo</h3>
       <div class="relative w-full h-64 bg-black rounded-lg overflow-hidden border border-gray-700">
-        <video id="photoPreview" class="w-full h-full object-cover" autoplay playsinline></video>
+        <video id="photoPreview" class="w-full h-full object-cover" autoplay playsinline muted></video>
       </div>
       <div class="flex gap-2">
         <button onclick="capturePhotoSnap()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg text-xs">
@@ -186,6 +186,8 @@
     let activeTargetId = null;
     let photoTargetKey = null;
     let photoStream = null;
+    let activeScanInterval = null;
+    let activeStream = null;
     let editingIndex = -1;
     
     let vendors = JSON.parse(localStorage.getItem('courier_vendors')) || ['Shree Maruti', 'DTDC', 'ST COURIER', 'MARK'];
@@ -252,17 +254,6 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       await initIndexedDB();
-
-      const hints = new Map();
-      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.CODE_39,
-        ZXing.BarcodeFormat.EAN_13
-      ]);
-      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-      hints.set(ZXing.DecodeHintType.ALSO_INVERTED, true);
-
-      codeReader = new ZXing.BrowserMultiFormatReader(hints);
 
       const today = new Date();
       const yyyy = today.getFullYear();
@@ -468,40 +459,75 @@
       container.appendChild(div);
     }
 
+    // Upgraded Native BarcodeDetector Engine (Hooks directly into Android machine learning)
     async function startScan(inputId) {
       activeTargetId = inputId;
       document.getElementById('scannerModal').classList.remove('hidden');
-
-      const constraints = {
-        video: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1920, min: 1280 },
-          height: { ideal: 1080, min: 720 },
-          focusMode: { ideal: "continuous" },
-          frameRate: { ideal: 30, max: 60 }
-        }
-      };
+      const videoElement = document.getElementById('cameraPreview');
 
       try {
-        await codeReader.decodeFromConstraints(constraints, 'cameraPreview', (result, err) => {
-          if (result) {
-            document.getElementById(activeTargetId).value = result.text;
-            playBeep();
-            stopScan();
+        activeStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1920, min: 1280 },
+            height: { ideal: 1080, min: 720 },
+            focusMode: { ideal: "continuous" }
           }
         });
+        
+        videoElement.srcObject = activeStream;
+        await videoElement.play();
+
+        if ('BarcodeDetector' in window) {
+          const barcodeDetector = new BarcodeDetector({ 
+            formats: ['code_128', 'code_39', 'ean_13', 'qr_code'] 
+          });
+
+          activeScanInterval = setInterval(async () => {
+            if (videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
+              try {
+                const barcodes = await barcodeDetector.detect(videoElement);
+                if (barcodes.length > 0) {
+                  document.getElementById(activeTargetId).value = barcodes[0].rawValue;
+                  playBeep();
+                  stopScan();
+                }
+              } catch (err) {}
+            }
+          }, 150);
+
+        } else {
+          // Fallback to ZXing if browser lacks native BarcodeDetector
+          const hints = new Map();
+          hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+          hints.set(ZXing.DecodeHintType.ALSO_INVERTED, true);
+          codeReader = new ZXing.BrowserMultiFormatReader(hints);
+          
+          await codeReader.decodeFromVideoElement(videoElement, (result, err) => {
+            if (result) {
+              document.getElementById(activeTargetId).value = result.text;
+              playBeep();
+              stopScan();
+            }
+          });
+        }
       } catch (e) {
-        codeReader.decodeFromVideoDevice(undefined, 'cameraPreview', (result, err) => {
-          if (result) {
-            document.getElementById(activeTargetId).value = result.text;
-            playBeep();
-            stopScan();
-          }
-        });
+        alert('Camera error: ' + e.message);
+        stopScan();
       }
     }
 
     function stopScan() {
+      if (activeScanInterval) {
+        clearInterval(activeScanInterval);
+        activeScanInterval = null;
+      }
+      if (activeStream) {
+        activeStream.getTracks().forEach(track => track.stop());
+        activeStream = null;
+      }
+      const videoElement = document.getElementById('cameraPreview');
+      if (videoElement) videoElement.srcObject = null;
       if (codeReader) codeReader.reset();
       document.getElementById('scannerModal').classList.add('hidden');
     }
