@@ -573,7 +573,11 @@
       photoStore[photoTargetKey] = base64Img;
 
       const labelBtn = document.getElementById(`photoBtnLabel_${photoTargetKey}`);
-      if (labelBtn) labelBtn.innerText = 'Saved ✓';
+      if (labelBtn){ 
+        labelBtn.innerText = 'Saved ✓';
+        labelBtn.classList.remove('bg-blue-600');
+        labelBtn.classList.add('bg-green-600');
+      }
 
       closePhotoModal();
     }
@@ -780,12 +784,28 @@
     function resetForm() {
       editingIndex = -1;
       photoStore = {};
+// Clear all stored photos and hide their thumbnails / reset button labels
+      Object.keys(photoStore).forEach(key => {
+        const labelBtn = document.getElementById(`photoBtnLabel_${key}`);
+        if (labelBtn) {
+          labelBtn.innerText = 'Take Photo';
+          labelBtn.classList.remove('bg-green-600');
+          labelBtn.classList.add('bg-blue-600');
+        }
+        const thumbImg = document.getElementById(`photoThumb_${key}`);
+        if (thumbImg) {
+          thumbImg.src = '';
+          thumbImg.classList.add('hidden');
+        }
+      });
+      
       handleModeChange();
       document.getElementById('formTitleText').innerText = 'New Consignment Entry';
       document.getElementById('btnText').innerText = 'SAVE DISPATCH ENTRY';
       document.getElementById('cancelEditBtn').classList.add('hidden');
     }
 
+ 
     async function saveEntriesToStorage() {
       await saveBatchToDB(currentBatchName, entries);
     }
