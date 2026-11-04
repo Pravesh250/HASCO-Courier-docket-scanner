@@ -579,13 +579,20 @@
       
       const base64Img = canvas.toDataURL('image/jpeg', 0.95);
       photoStore[photoTargetKey] = base64Img;
-
+      
+      // 1. Update button text & green style
       const labelBtn = document.getElementById(`photoBtnLabel_${photoTargetKey}`);
       if (labelBtn){ 
         labelBtn.innerText = 'Saved ✓';
         labelBtn.classList.remove('bg-blue-600');
         labelBtn.classList.add('bg-green-600');
+      // 2. Display the picture thumbnail preview right next to the button
+      const thumbImg = document.getElementById(`photoThumb_${photoTargetKey}`);
+      if (thumbImg) {
+        thumbImg.src = base64Img;
+        thumbImg.classList.remove('hidden');
       }
+      
 
       closePhotoModal();
     }
