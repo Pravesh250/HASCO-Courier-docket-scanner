@@ -332,9 +332,12 @@
           </div>
           <div>
             <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Box Photo Attachment</label>
-            <button onclick="openPhotoModal('pack1')" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
-              <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack1">Take Photo (pack1)</span>
-            </button>
+            <div class="flex items-center gap-3">
+              <button onclick="openPhotoModal('pack1')" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+                <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack1">Take Photo (pack1)</span>
+              </button>
+              <img id="photoThumb_pack1" src="" alt="Preview" class="hidden w-12 h-12 object-cover rounded-md border border-gray-600 shadow-sm shrink-0" />
+            </div>
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
@@ -383,9 +386,12 @@
           </div>
           <div>
             <label class="block text-xs font-bold uppercase text-gray-300 mb-1">Box Photo Attachment</label>
-            <button onclick="openPhotoModal('pack1')" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
-              <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack1">Take Photo (pack1)</span>
-            </button>
+            <div class="flex items-center gap-3">
+              <button onclick="openPhotoModal('pack1')" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+                <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack1">Take Photo (pack1)</span>
+              </button>
+              <img id="photoThumb_pack1" src="" alt="Preview" class="hidden w-12 h-12 object-cover rounded-md border border-gray-600 shadow-sm shrink-0" />
+            </div>
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
@@ -415,9 +421,10 @@
             <button onclick="startScan('docket_pkg_${i}')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs"><i class="fa-solid fa-camera"></i></button>
           </div>
           <div class="flex gap-2 items-center">
-            <button onclick="openPhotoModal('pack${i}')" class="bg-gray-800 text-gray-300 border border-gray-700 px-3 py-1.5 rounded text-xs shrink-0 font-bold">
+            <button onclick="openPhotoModal('pack${i}')" class="bg-gray-800 text-gray-300 border border-gray-700 px-3 py-1.5 rounded text-xs shrink-0 font-bold flex items-center gap-1.5">
               <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack${i}">Photo</span>
             </button>
+            <img id="photoThumb_pack${i}" src="" alt="Preview" class="hidden w-10 h-10 object-cover rounded-md border border-gray-600 shadow-sm shrink-0" />
             <input type="number" step="0.01" id="weight_pkg_${i}" placeholder="Weight (kg)" class="input-field w-full px-3 py-1.5 rounded text-xs">
           </div>
         `;
@@ -435,9 +442,10 @@
         div.innerHTML = `
           <p class="text-xs font-bold text-blue-400">Package - ${i}</p>
           <div class="flex gap-2 items-center">
-            <button onclick="openPhotoModal('pack${i}')" class="bg-gray-800 text-gray-300 border border-gray-700 px-3 py-1.5 rounded text-xs shrink-0 font-bold">
+            <button onclick="openPhotoModal('pack${i}')" class="bg-gray-800 text-gray-300 border border-gray-700 px-3 py-1.5 rounded text-xs shrink-0 font-bold flex items-center gap-1.5">
               <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack${i}">Photo</span>
             </button>
+            <img id="photoThumb_pack${i}" src="" alt="Preview" class="hidden w-10 h-10 object-cover rounded-md border border-gray-600 shadow-sm shrink-0" />
             <input type="number" step="0.01" id="weight_pkg_${i}" placeholder="Weight (kg) for Pkg ${i}" class="input-field w-full px-3 py-1.5 rounded text-xs">
           </div>
         `;
@@ -781,10 +789,10 @@
       resetForm();
     }
 
-    function resetForm() {
+function resetForm() {
       editingIndex = -1;
-      photoStore = {};
-// Clear all stored photos and hide their thumbnails / reset button labels
+      
+      // 1. Loop through photoStore keys FIRST before wiping the object
       Object.keys(photoStore).forEach(key => {
         const labelBtn = document.getElementById(`photoBtnLabel_${key}`);
         if (labelBtn) {
@@ -798,7 +806,9 @@
           thumbImg.classList.add('hidden');
         }
       });
-      
+
+      // 2. Now clear the photo store and reset form state
+      photoStore = {};
       handleModeChange();
       document.getElementById('formTitleText').innerText = 'New Consignment Entry';
       document.getElementById('btnText').innerText = 'SAVE DISPATCH ENTRY';
