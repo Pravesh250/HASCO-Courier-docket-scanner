@@ -729,6 +729,10 @@
     }
 
     function openImagePreview(packKey) {
+
+      console.log("Thumbnail clicked for key:", packKey);
+      console.log("Current photoStore data:", photoStore);
+      
       const base64Img = photoStore[packKey];
       if (!base64Img) return;
 
