@@ -408,10 +408,12 @@
             <button onclick="startScan('docket_pkg_${i}')" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs"><i class="fa-solid fa-camera"></i></button>
           </div>
           <div class="flex gap-2 items-center">
-            <button onclick="openPhotoModal('pack${i}')" class="bg-gray-800 text-gray-300 border border-gray-700 px-3 py-1.5 rounded text-xs shrink-0 font-bold flex items-center gap-1.5">
+            <button type="button" onclick="openPhotoModal('pack${i}')" class="bg-gray-800 text-gray-300 border border-gray-700 px-3 py-1.5 rounded text-xs shrink-0 font-bold flex items-center gap-1.5">
               <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack${i}">Photo</span>
             </button>
-            <img id="photoThumb_pack${i}" src="" onclick="openImagePreview('pack${i}')" alt="Preview" class="hidden w-10 h-10 object-cover rounded-md border border-gray-600 shadow-sm shrink-0 cursor-pointer hover:opacity-80 transition" title="Tap to inspect" />
+            <div id="thumbWrapper_pack${i}" class="hidden cursor-pointer shrink-0" onclick="openImagePreview('pack${i}')" title="Tap to inspect">
+              <img id="photoThumb_pack${i}" src="" alt="Preview" class="w-10 h-10 object-cover rounded-md border border-gray-600 shadow-sm hover:opacity-80 transition" />
+            </div>
             <input type="number" step="0.01" id="weight_pkg_${i}" placeholder="Weight (kg)" class="input-field w-full px-3 py-1.5 rounded text-xs">
           </div>
         `;
@@ -429,10 +431,12 @@
         div.innerHTML = `
           <p class="text-xs font-bold text-blue-400">Package - ${i}</p>
           <div class="flex gap-2 items-center">
-            <button onclick="openPhotoModal('pack${i}')" class="bg-gray-800 text-gray-300 border border-gray-700 px-3 py-1.5 rounded text-xs shrink-0 font-bold flex items-center gap-1.5">
+            <button type="button" onclick="openPhotoModal('pack${i}')" class="bg-gray-800 text-gray-300 border border-gray-700 px-3 py-1.5 rounded text-xs shrink-0 font-bold flex items-center gap-1.5">
               <i class="fa-solid fa-camera text-blue-400"></i> <span id="photoBtnLabel_pack${i}">Photo</span>
             </button>
-            <img id="photoThumb_pack${i}" src="" onclick="openImagePreview('pack${i}')" alt="Preview" class="hidden w-10 h-10 object-cover rounded-md border border-gray-600 shadow-sm shrink-0 cursor-pointer hover:opacity-80 transition" title="Tap to inspect" />
+            <div id="thumbWrapper_pack${i}" class="hidden cursor-pointer shrink-0" onclick="openImagePreview('pack${i}')" title="Tap to inspect">
+              <img id="photoThumb_pack${i}" src="" alt="Preview" class="w-10 h-10 object-cover rounded-md border border-gray-600 shadow-sm hover:opacity-80 transition" />
+            </div>
             <input type="number" step="0.01" id="weight_pkg_${i}" placeholder="Weight (kg) for Pkg ${i}" class="input-field w-full px-3 py-1.5 rounded text-xs">
           </div>
         `;
