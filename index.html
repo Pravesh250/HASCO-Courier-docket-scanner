@@ -279,7 +279,7 @@
       handleModeChange();
       await loadTodayEntries();
     });
-
+    let currentBatchDateDisplay = ''
     function initBatchFile() {
       let dateVal = document.getElementById('dispatchDate').value;
       if (!dateVal) {
@@ -292,7 +292,8 @@
       }
       
       const parts = dateVal.split('-');
-      currentBatchDateStr = `${parts[2]}_${parts[1]}_${parts[0]}`;
+      currentBatchDateStr = `${parts[2]}_${parts[1]}_${parts[0]}`; // Keeps filename safe with underscores
+      currentBatchDateDisplay = `${parts[2]}/${parts[1]}/${parts[0]}`; // dd/mm/YYYY for CSV rows
       currentBatchName = `Courier details for- ${currentBatchDateStr}.csv`;
       document.getElementById('batchFileName').innerText = currentBatchName;
     }
@@ -722,7 +723,7 @@
       document.getElementById('modalFullImage').src = '';
     }
     
-    function editEntry(index) {
+function editEntry(index) {
       editingIndex = index;
       const entry = entries[index];
 
@@ -737,14 +738,29 @@
 
       photoStore = { ...entry.photos };
 
+      // Helper function to restore button & thumbnail state
+      const restorePhotoUI = (key) => {
+        if (photoStore[key]) {
+          const btn = document.getElementById(`photoBtnLabel_${key}`);
+          if (btn) {
+            btn.innerText = 'Saved ✓';
+            btn.classList.remove('bg-blue-600');
+            btn.classList.add('bg-green-600');
+          }
+          const thumb = document.getElementById(`photoThumb_${key}`);
+          const wrapper = document.getElementById(`thumbWrapper_${key}`);
+          if (thumb && wrapper) {
+            thumb.src = photoStore[key];
+            wrapper.classList.remove('hidden');
+          }
+        }
+      };
+
       if (entry.mode === 'A') {
         document.getElementById('inv_1').value = entry.inv || '';
         document.getElementById('weight_1').value = entry.weight || '';
         document.getElementById('docket_1').value = entry.docket || '';
-        if (photoStore['pack1']) {
-          const btn = document.getElementById('photoBtnLabel_pack1');
-          if (btn) btn.innerText = 'Saved ✓';
-        }
+        restorePhotoUI('pack1');
       } else if (entry.mode === 'B') {
         document.getElementById('inv_1').value = entry.inv || '';
         const pkgArr = entry.pkgStr ? entry.pkgStr.split(' || ') : [];
@@ -755,10 +771,7 @@
           const i = idx + 1;
           if (document.getElementById(`docket_pkg_${i}`)) document.getElementById(`docket_pkg_${i}`).value = parts[1] || '';
           if (document.getElementById(`weight_pkg_${i}`)) document.getElementById(`weight_pkg_${i}`).value = parts[2] || '';
-          if (photoStore[`pack${i}`]) {
-            const btn = document.getElementById(`photoBtnLabel_pack${i}`);
-            if (btn) btn.innerText = 'Saved ✓';
-          }
+          restorePhotoUI(`pack${i}`);
         });
       } else if (entry.mode === 'C') {
         document.getElementById('inv_1').value = entry.inv || '';
@@ -770,10 +783,7 @@
           const parts = pStr.split('-');
           const i = idx + 1;
           if (document.getElementById(`weight_pkg_${i}`)) document.getElementById(`weight_pkg_${i}`).value = parts[1] || '';
-          if (photoStore[`pack${i}`]) {
-            const btn = document.getElementById(`photoBtnLabel_pack${i}`);
-            if (btn) btn.innerText = 'Saved ✓';
-          }
+          restorePhotoUI(`pack${i}`);
         });
       } else if (entry.mode === 'D') {
         document.getElementById('weight_1').value = entry.weight || '';
@@ -789,10 +799,7 @@
         } else {
           addInvoiceFieldD();
         }
-        if (photoStore['pack1']) {
-          const btn = document.getElementById('photoBtnLabel_pack1');
-          if (btn) btn.innerText = 'Saved ✓';
-        }
+        restorePhotoUI('pack1');
       }
 
       document.getElementById('formTitleText').innerText = 'Edit Consignment Entry';
@@ -880,9 +887,12 @@ function resetForm() {
 
     async function deleteEntry(idx) {
       if (confirm('Are you sure you want to delete this record?')) {
+        // Optional: clear photoStore if deleting the currently active form item
+        if (editingIndex === idx) {
+          resetForm();
+        }
         entries.splice(idx, 1);
         await saveEntriesToStorage();
-        if (editingIndex === idx) resetForm();
         renderTable();
       }
     }
@@ -899,6 +909,8 @@ function resetForm() {
       let csv = "Workflow Option,Date,Invoice Number,Courier Partner Name,Details / Docket,Total Weight\n";
       entries.forEach(e => {
         const optionDesc = OPTION_DESCRIPTIONS[e.mode] || `Option ${e.mode}`;
+        // Use e.date if stored, mapped back, or fallback to currentBatchDateDisplay
+        const rowDate = currentBatchDateDisplay;
 
         if (e.mode === 'A') {
           csv += `"${optionDesc}","${e.date}","${e.inv}","${e.courier}","${e.docket}","${e.weight}"\n`;
