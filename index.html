@@ -913,15 +913,15 @@ function resetForm() {
         const rowDate = currentBatchDateDisplay;
 
         if (e.mode === 'A') {
-          csv += `"${optionDesc}","${e.date}","${e.inv}","${e.courier}","${e.docket}","${e.weight}"\n`;
+          csv += `"${optionDesc}","${rowDate}","${e.inv}","${e.courier}","${e.docket}","${e.weight}"\n`;
         } else if (e.mode === 'B') {
-          csv += `"${optionDesc}","${e.date}","${e.inv}","${e.courier}","${e.pkgStr}",""\n`;
+          csv += `"${optionDesc}","${rowDate}","${e.inv}","${e.courier}","${e.pkgStr}",""\n`;
         } else if (e.mode === 'C') {
-          csv += `"${optionDesc}","${e.date}","${e.inv}","${e.courier}","${e.docket}","${e.pkgStr}","${e.totalWeight}"\n`;
+          csv += `"${optionDesc}","${rowDate}","${e.inv}","${e.courier}","${e.docket}","${e.pkgStr}","${e.totalWeight}"\n`;
         } else if (e.mode === 'D') {
           e.invoices.forEach((invNum, i) => {
             let weightVal = (i === 0) ? e.weight : "";
-            csv += `"${optionDesc}","${e.date}","${invNum}","${e.courier}","${e.docket}","${weightVal}"\n`;
+            csv += `"${optionDesc}","${rowDate}","${invNum}","${e.courier}","${e.docket}","${weightVal}"\n`;
           });
         }
       });
